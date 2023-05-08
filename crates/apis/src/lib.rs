@@ -40,6 +40,8 @@ mod runtime_ext;
 #[cfg(feature = "stream_io")]
 mod stream_io;
 
+mod node_red;
+
 pub(crate) trait JSApiSet {
     fn register(&self, runtime: &Runtime, config: &APIConfig) -> Result<()>;
 }
@@ -60,5 +62,8 @@ pub fn add_to_runtime(runtime: &Runtime, config: APIConfig) -> Result<()> {
     console::Console::new().register(runtime, &config)?;
     #[cfg(feature = "stream_io")]
     stream_io::StreamIO.register(runtime, &config)?;
+
+    node_red::NodeRed.register(runtime, &config)?;
+
     Ok(())
 }

@@ -43,6 +43,7 @@ impl JSApiSet for StreamIO {
         global.set_property(
             "__javy_io_readSync",
             context.wrap_callback(|_, _this_arg, args| {
+                println!("Calling read_sync");
                 let [fd, data, offset, length, ..] = args else {
                     anyhow::bail!("Invalid number of parameters");
                 };

@@ -21,6 +21,13 @@ extern "Rust" {
     /// Call the done function of the node red host
     pub fn node_red_done(data: *const u8, offset: i32, length: i32);
 
+
+    /// Returns the size of the node red node struct encoded as JSON
+    pub fn node_red_node_size() -> usize;
+
+    /// Ask the host to write the node JSON in the buff
+    pub fn node_red_node(data: *const u8, offset: i32, length: i32) -> usize; // Implemented by the host
+
     // TODO add the other basic channels
     // pub fn write_fs(data:Vec<u8>, offset: i32, length: i32, fd: i32) -> usize;
 
@@ -65,6 +72,33 @@ impl JSApiSet for NodeRed {
 
         global.set_property("__node_msg_length", context.wrap_callback(|_, _this_arg, args|{
                 let length = unsafe{  node_red_msg_size() };
+                Ok(length.into())
+            })?,
+        )?;
+
+        global.set_property(
+            "__node_node",
+            context.wrap_callback(|_, _this_arg, args| {
+                let [data, offset, length, ..] = args else {
+                    anyhow::bail!("Invalid number of parameters");
+                };
+
+
+                // Parse the data
+                let data = unsafe { data.inner_value() };
+                if !data.is_array_buffer() {
+                    anyhow::bail!("Data needs to be an ArrayBuffer");
+                }
+                let data = data.as_bytes_mut()?;
+                // The host writes the data in the memory
+                let length = unsafe { node_red_node(data.as_ptr().try_into()?, offset.try_into()?, length.try_into()?) };
+                // TODO FIX this
+                Ok(String::from(std::str::from_utf8(&*data).unwrap()).into())
+            })?,
+        )?;
+
+        global.set_property("__node_node_length", context.wrap_callback(|_, _this_arg, args|{
+                let length = unsafe{  node_red_node_size() };
                 Ok(length.into())
             })?,
         )?;

@@ -1,12 +1,21 @@
 (function () {
   const __node_msg = globalThis.__node_msg;
+  const __node_node = globalThis.__node_node;
   const __node_send = globalThis.__node_send;
   const __node_done = globalThis.__node_done;
   const __node_msg_length = globalThis.__node_msg_length;
+  const __node_node_length = globalThis.__node_node_length;
+  
   globalThis.Node.IO = {
     msg() {
       const buffer = new Uint8Array(__node_msg_length());
       __node_msg(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      let final_decoder = new TextDecoder().decode(buffer)
+      return JSON.parse(final_decoder);
+    },
+    node() {
+      const buffer = new Uint8Array(__node_node_length());
+      __node_node(buffer.buffer, buffer.byteOffset, buffer.byteLength);
       let final_decoder = new TextDecoder().decode(buffer)
       return JSON.parse(final_decoder);
     },
@@ -26,9 +35,28 @@
       return __node_done(buffer.buffer, buffer.byteOffset, buffer.byteLength);
     }
   };
+  globalThis.RED = {
+    
+  };
+  globalThis.RED.util = {
+    getMessageProperty(msg, property) {
+       console.log("Not implemented")
+    },
+    setMessageProperty(msg, property, val) {
+       console.log("Not implemented")
+    },
+  };
+
+  /// This makes easy the port of already existing nodes
+  // Create a JS proxy here
+  // globalThis.msg = globalThis.Node.IO.msg();
+  globalThis.send = globalThis.Node.IO.send;
+  globalThis.done = globalThis.Node.IO.done;
 
   Reflect.deleteProperty(globalThis, "__node_msg");
   Reflect.deleteProperty(globalThis, "__node_send");
   Reflect.deleteProperty(globalThis, "__node_done");
   Reflect.deleteProperty(globalThis, "__node_msg_length");
+  Reflect.deleteProperty(globalThis, "__node_node_length");
+  Reflect.deleteProperty(globalThis, "__node_node");
 })();

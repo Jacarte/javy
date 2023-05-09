@@ -46,7 +46,6 @@ impl JSApiSet for NodeRed {
 
                 // Parse the data
                 let length = unsafe { node_red_msg(data.try_into()?, offset.try_into()?, length.try_into()?) };
-                println!("Data {:?}", length);
                 Ok(data.to_string().into())
             })?,
         )?;

@@ -5,19 +5,16 @@
   const __node_msg_length = globalThis.__node_msg_length;
   globalThis.Node.IO = {
     msg() {
-        const buffer = new Uint8Array(__node_msg_length());
-        // Stdin file descriptor
-      // let buff = [];
-      // let read = __node_msg(buff);
-      // let data = buff[..read]
-      return JSON.parse(__node_msg(buffer.buffer, buffer.byteOffset, buffer.byteLength));
+      const buffer = new Uint8Array(__node_msg_length());
+      __node_msg(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      let final_decoder = new TextDecoder().decode(buffer)
+      return JSON.parse(final_decoder);
     },
     send(payload) {
 
       let data = JSON.stringify(payload);
       const encodedOutput = new TextEncoder().encode(data);
       const buffer = new Uint8Array(encodedOutput);
-      console.log(buffer.buffer, buffer.offset, buffer.length);
       return __node_send(buffer.buffer, buffer.byteOffset, buffer.byteLength);
     },
     done(payload) {

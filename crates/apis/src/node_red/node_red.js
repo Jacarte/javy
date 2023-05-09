@@ -11,10 +11,12 @@
       return JSON.parse(final_decoder);
     },
     send(payload) {
-
+      // TODO Ideally this should be done using quickjs_wasm_rs
       let data = JSON.stringify(payload);
+      console.log(data);
       const encodedOutput = new TextEncoder().encode(data);
       const buffer = new Uint8Array(encodedOutput);
+      console.log(buffer.buffer, buffer.byteLength);
       return __node_send(buffer.buffer, buffer.byteOffset, buffer.byteLength);
     },
     done(payload) {

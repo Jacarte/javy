@@ -13,13 +13,22 @@ extern "Rust" {
     pub fn node_red_msg_size() -> usize;
 
     /// Ask the host to write the message JSON in the buff
-    pub fn node_red_msg(buff: Vec<u8>, offset: i32, length: i32) -> usize; // Implemented by the host
+    pub fn node_red_msg(data: *const u8, offset: i32, length: i32) -> usize; // Implemented by the host
 
     /// Send a custom message using the node red host
-    pub fn node_red_send(data: Vec<u8>, offset: i32, length: i32);
+    pub fn node_red_send(data: *const u8, offset: i32, length: i32);
 
     /// Call the done function of the node red host
-    pub fn node_red_done(data: Vec<u8>, offset: i32, length: i32);
+    pub fn node_red_done(data: *const u8, offset: i32, length: i32);
+
+    // TODO add the other basic channels
+    // pub fn write_fs(data:Vec<u8>, offset: i32, length: i32, fd: i32) -> usize;
+
+    // TODO
+    // pub fn read_fs(data:Vec<u8>, offset: i32, length: i32, fs: i32) -> usize;
+    
+    // TODO 
+    // pub fn http_request(...)
 }
 
 impl JSApiSet for NodeRed {
@@ -40,19 +49,23 @@ impl JSApiSet for NodeRed {
                     anyhow::bail!("Invalid number of parameters");
                 };
 
-                // The host writes the data in the memory
-
-                // the data is a json file...we parse here
 
                 // Parse the data
-                let length = unsafe { node_red_msg(data.try_into()?, offset.try_into()?, length.try_into()?) };
-                Ok(data.to_string().into())
+                let data = unsafe { data.inner_value() };
+                if !data.is_array_buffer() {
+                    anyhow::bail!("Data needs to be an ArrayBuffer");
+                }
+                let data = data.as_bytes_mut()?;
+                // The host writes the data in the memory
+                let length = unsafe { node_red_msg(data.as_ptr().try_into()?, offset.try_into()?, length.try_into()?) };
+                // TODO FIX this
+                Ok(String::from(std::str::from_utf8(&*data).unwrap()).into())
             })?,
         )?;
 
         global.set_property("__node_msg_length", context.wrap_callback(|_, _this_arg, args|{
-            let length = unsafe{   node_red_msg_size() };
-            Ok(length.into())
+                let length = unsafe{  node_red_msg_size() };
+                Ok(length.into())
             })?,
         )?;
 
@@ -63,6 +76,12 @@ impl JSApiSet for NodeRed {
                     anyhow::bail!("Invalid number of parameters")
                 };
 
+                let data = unsafe { data.inner_value() };
+                if !data.is_array_buffer() {
+                    anyhow::bail!("Data needs to be an ArrayBuffer");
+                }
+                // It does not need to be mut
+                let data = data.as_bytes_mut()?.as_ptr();
                 unsafe { node_red_send(data.try_into()?, offset.try_into()?, length.try_into()?) };
 
                 Ok(1.into())
@@ -76,8 +95,13 @@ impl JSApiSet for NodeRed {
                     anyhow::bail!("Invalid number of parameters")
                 };
 
+                let data = unsafe { data.inner_value() };
+                if !data.is_array_buffer() {
+                    anyhow::bail!("Data needs to be an ArrayBuffer");
+                }
+                // It does not need to be mut
+                let data = data.as_bytes_mut()?.as_ptr();
                 unsafe { node_red_done(data.try_into()?, offset.try_into()?, length.try_into()?) };
-
                 Ok(1.into())
             })?,
         )?;

@@ -1,11 +1,8 @@
-function main(){
-  let msg = Node.IO.msg();
-  console.log(msg.payload);
+let msg = Node.IO.msg();
+console.log(msg.payload);
 
-  let lower = msg1.payload.toLowerCase();
+let lower = msg.payload.toLowerCase();
+msg.payload = lower;
 
-  Node.IO.send(lower);
-  Node.IO.done(lower);
-}
+Node.IO.send(msg);
 
-main()

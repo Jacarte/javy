@@ -8,6 +8,8 @@ license.workspace = true
 [features]
 console = []
 stream_io = []
+node_red = []
+trace_lock = []
 
 [dependencies]
 anyhow = { workspace = true }

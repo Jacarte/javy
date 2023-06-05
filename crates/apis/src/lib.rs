@@ -40,7 +40,11 @@ mod runtime_ext;
 #[cfg(feature = "stream_io")]
 mod stream_io;
 
+#[cfg(feature = "node_red")]
 mod node_red;
+
+#[cfg(feature = "trace_lock")]
+mod trace_lock;
 
 pub(crate) trait JSApiSet {
     fn register(&self, runtime: &Runtime, config: &APIConfig) -> Result<()>;
@@ -63,7 +67,11 @@ pub fn add_to_runtime(runtime: &Runtime, config: APIConfig) -> Result<()> {
     #[cfg(feature = "stream_io")]
     stream_io::StreamIO.register(runtime, &config)?;
 
+    #[cfg(feature = "node_red")]
     node_red::NodeRed.register(runtime, &config)?;
+
+    #[cfg(feature = "trace_lock")]
+    trace_lock::TraceLock.register(runtime, &config)?;
 
     Ok(())
 }

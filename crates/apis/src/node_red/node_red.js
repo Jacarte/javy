@@ -40,10 +40,10 @@
   };
   globalThis.RED.util = {
     getMessageProperty(msg, property) {
-       console.log("Not implemented")
+       console.log("Not implemented globalThis.RED.util.getMessageProperty")
     },
     setMessageProperty(msg, property, val) {
-       console.log("Not implemented")
+       console.log("Not implemented globalThis.RED.util.setMessageProperty")
     },
   };
 

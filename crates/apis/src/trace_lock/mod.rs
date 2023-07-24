@@ -5,7 +5,7 @@ use javy::Runtime;
 
 use crate::{APIConfig, JSApiSet};
 
-pub(super) struct NodeRed;
+pub(super) struct TraceLock;
 
 extern "Rust" {
 
@@ -16,7 +16,7 @@ extern "Rust" {
     pub fn unlock();
 }
 
-impl JSApiSet for NodeRed {
+impl JSApiSet for TraceLock {
     fn register(&self, runtime: &Runtime, _config: &APIConfig) -> Result<()> {
         let context = runtime.context();
         let global = context.global_object()?;
@@ -31,11 +31,13 @@ impl JSApiSet for NodeRed {
             "__trace_lock",
             context.wrap_callback(|_, _this_arg, args| {
                 unsafe { lock() };
+                Ok(true.into())
             })?,
         )?;
 
         global.set_property("__trace_unlock", context.wrap_callback(|_, _this_arg, args|{
                 unsafe { unlock() };
+                Ok(false.into())
             })?,
         )?;
 

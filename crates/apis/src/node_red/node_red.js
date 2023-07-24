@@ -5,6 +5,7 @@
   const __node_done = globalThis.__node_done;
   const __node_msg_length = globalThis.__node_msg_length;
   const __node_node_length = globalThis.__node_node_length;
+  const __node_red_result = globalThis.__node_red_result;
   
   globalThis.Node.IO = {
     msg() {
@@ -33,6 +34,12 @@
       const encodedOutput = new TextEncoder().encode(data);
       const buffer = new Uint8Array(encodedOutput);
       return __node_done(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+    },
+    set_result(payload){
+      let data =JSON.stringify(payload);
+      const encodedOutput = new TextEncoder().encode(data);
+      const buffer = new Uint8Array(encodedOutput);
+      return __node_red_result(buffer.buffer, buffer.byteOffset, buffer.byteLength);
     }
   };
   globalThis.RED = {
@@ -59,4 +66,5 @@
   Reflect.deleteProperty(globalThis, "__node_msg_length");
   Reflect.deleteProperty(globalThis, "__node_node_length");
   Reflect.deleteProperty(globalThis, "__node_node");
+  Reflect.deleteProperty(globalThis, "__node_red_result");
 })();

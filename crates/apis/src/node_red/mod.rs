@@ -28,6 +28,7 @@ extern "Rust" {
     /// Ask the host to write the node JSON in the buff
     pub fn node_red_node(data: *const u8, offset: i32, length: i32) -> usize; // Implemented by the host
 
+    pub fn node_red_result(data: *const u8, offset: i32, length:i32);
     // TODO add the other basic channels
     // pub fn write_fs(data:Vec<u8>, offset: i32, length: i32, fd: i32) -> usize;
 
@@ -139,6 +140,24 @@ impl JSApiSet for NodeRed {
                 Ok(1.into())
             })?,
         )?;
+
+        global.set_property(
+            "__node_red_result",
+            context.wrap_callback(|_, _this_arg, args| {
+                let [data, offset, length,  ..] = args else {
+                    anyhow::bail!("Invalid number of parameters")
+                };
+
+                let data = unsafe { data.inner_value() };
+                if !data.is_array_buffer() {
+                    anyhow::bail!("Data needs to be an ArrayBuffer");
+                }
+                // It does not need to be mut
+                let data = data.as_bytes_mut()?.as_ptr();
+                unsafe { node_red_result(data.try_into()?, offset.try_into()?, length.try_into()?) };
+                Ok(1.into())
+            })?,
+        )
 
         context.eval_global("node_red.js", include_str!("node_red.js"))?;
         Ok(())

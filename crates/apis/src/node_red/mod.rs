@@ -157,8 +157,8 @@ impl JSApiSet for NodeRed {
                 unsafe { node_red_result(data.try_into()?, offset.try_into()?, length.try_into()?) };
                 Ok(1.into())
             })?,
-        )
-
+        )?;
+        
         context.eval_global("node_red.js", include_str!("node_red.js"))?;
         Ok(())
     }

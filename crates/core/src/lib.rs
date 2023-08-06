@@ -1,19 +1,13 @@
 use javy::Runtime;
 use once_cell::sync::OnceCell;
-use std::alloc::{alloc, dealloc, Layout};
-use std::ptr::copy_nonoverlapping;
 use std::slice;
 use std::str;
 
+mod alloc;
 mod execution;
-mod globals;
 mod runtime;
 
-// Unlike C's realloc, zero-length allocations need not have
-// unique addresses, so a zero-length allocation may be passed
-// in and also requested, but it's ok to return anything that's
-// non-zero to indicate success.
-const ZERO_SIZE_ALLOCATION_PTR: *mut u8 = 1 as _;
+const FUNCTION_MODULE_NAME: &str = "function.mjs";
 
 static mut COMPILE_SRC_RET_AREA: [u32; 2] = [0; 2];
 
@@ -23,7 +17,6 @@ static mut RUNTIME: OnceCell<Runtime> = OnceCell::new();
 #[export_name = "wizer.initialize"]
 pub extern "C" fn init() {
     let runtime = runtime::new_runtime().unwrap();
-    globals::inject_javy_globals(&runtime).unwrap();
     unsafe { RUNTIME.set(runtime).unwrap() };
 }
 
@@ -47,7 +40,7 @@ pub unsafe extern "C" fn compile_src(js_src_ptr: *const u8, js_src_len: usize) -
     let js_src = str::from_utf8(slice::from_raw_parts(js_src_ptr, js_src_len)).unwrap();
     let bytecode = runtime
         .context()
-        .compile_module("function.mjs", js_src)
+        .compile_module(FUNCTION_MODULE_NAME, js_src)
         .unwrap();
     let bytecode_len = bytecode.len();
     // We need the bytecode buffer to live longer than this function so it can be read from memory
@@ -66,7 +59,29 @@ pub unsafe extern "C" fn compile_src(js_src_ptr: *const u8, js_src_len: usize) -
 pub unsafe extern "C" fn eval_bytecode(bytecode_ptr: *const u8, bytecode_len: usize) {
     let runtime = RUNTIME.get().unwrap();
     let bytecode = slice::from_raw_parts(bytecode_ptr, bytecode_len);
-    execution::run_bytecode(runtime, bytecode).unwrap();
+    execution::run_bytecode(runtime, bytecode);
+}
+
+/// Evaluates QuickJS bytecode and invokes the exported JS function name.
+///
+/// # Safety
+///
+/// * `bytecode_ptr` must reference a valid array of bytes of `bytecode_len`
+///   length.
+/// * `fn_name_ptr` must reference a UTF-8 string with `fn_name_len` byte
+///   length.
+#[export_name = "invoke"]
+pub unsafe extern "C" fn invoke(
+    bytecode_ptr: *const u8,
+    bytecode_len: usize,
+    fn_name_ptr: *const u8,
+    fn_name_len: usize,
+) {
+    let runtime = RUNTIME.get().unwrap();
+    let bytecode = slice::from_raw_parts(bytecode_ptr, bytecode_len);
+    let fn_name = str::from_utf8_unchecked(slice::from_raw_parts(fn_name_ptr, fn_name_len));
+    execution::run_bytecode(runtime, bytecode);
+    execution::invoke_function(runtime, FUNCTION_MODULE_NAME, fn_name);
 }
 
 /// 1. Allocate memory of new_size with alignment.
@@ -90,19 +105,7 @@ pub unsafe extern "C" fn canonical_abi_realloc(
     alignment: usize,
     new_size: usize,
 ) -> *mut std::ffi::c_void {
-    assert!(new_size >= original_size);
-
-    let new_mem = match new_size {
-        0 => ZERO_SIZE_ALLOCATION_PTR,
-        // this call to `alloc` is safe since `new_size` must be > 0
-        _ => alloc(Layout::from_size_align(new_size, alignment).unwrap()),
-    };
-
-    if !original_ptr.is_null() && original_size != 0 {
-        copy_nonoverlapping(original_ptr, new_mem, original_size);
-        canonical_abi_free(original_ptr, original_size, alignment);
-    }
-    new_mem as _
+    alloc::canonical_abi_realloc(original_ptr, original_size, alignment, new_size)
 }
 
 /// Frees memory
@@ -114,7 +117,5 @@ pub unsafe extern "C" fn canonical_abi_realloc(
 ///   `canonical_abi_realloc` call that returned `ptr`
 #[export_name = "canonical_abi_free"]
 pub unsafe extern "C" fn canonical_abi_free(ptr: *mut u8, size: usize, alignment: usize) {
-    if size > 0 {
-        dealloc(ptr, Layout::from_size_align(size, alignment).unwrap())
-    };
+    alloc::canonical_abi_free(ptr, size, alignment)
 }

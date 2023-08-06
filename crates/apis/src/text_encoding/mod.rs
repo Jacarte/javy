@@ -1,33 +1,36 @@
-use anyhow::anyhow;
-use javy::quickjs::{CallbackArg, JSContextRef, JSError, JSValue};
-use javy::Runtime;
-use std::borrow::Cow;
-use std::str;
+use std::{borrow::Cow, str};
 
-pub fn inject_javy_globals(runtime: &Runtime) -> anyhow::Result<()> {
-    let context = runtime.context();
-    let global = context.global_object()?;
+use anyhow::{anyhow, Result};
+use javy::{
+    quickjs::{JSContextRef, JSError, JSValue, JSValueRef},
+    Runtime,
+};
 
-    global.set_property(
-        "__javy_decodeUtf8BufferToString",
-        context.wrap_callback(decode_utf8_buffer_to_js_string())?,
-    )?;
-    global.set_property(
-        "__javy_encodeStringToUtf8Buffer",
-        context.wrap_callback(encode_js_string_to_utf8_buffer())?,
-    )?;
+use crate::{APIConfig, JSApiSet};
 
-    context.eval_global(
-        "text-encoding.js",
-        include_str!("../prelude/text-encoding.js"),
-    )?;
+pub(super) struct TextEncoding;
 
-    Ok(())
+impl JSApiSet for TextEncoding {
+    fn register(&self, runtime: &Runtime, _config: &APIConfig) -> Result<()> {
+        let context = runtime.context();
+        let global = context.global_object()?;
+        global.set_property(
+            "__javy_decodeUtf8BufferToString",
+            context.wrap_callback(decode_utf8_buffer_to_js_string())?,
+        )?;
+        global.set_property(
+            "__javy_encodeStringToUtf8Buffer",
+            context.wrap_callback(encode_js_string_to_utf8_buffer())?,
+        )?;
+
+        context.eval_global("text-encoding.js", include_str!("./text-encoding.js"))?;
+        Ok(())
+    }
 }
 
 fn decode_utf8_buffer_to_js_string(
-) -> impl FnMut(&JSContextRef, &CallbackArg, &[CallbackArg]) -> anyhow::Result<JSValue> {
-    move |_ctx: &JSContextRef, _this: &CallbackArg, args: &[CallbackArg]| {
+) -> impl FnMut(&JSContextRef, JSValueRef, &[JSValueRef]) -> anyhow::Result<JSValue> {
+    move |_ctx: &JSContextRef, _this: JSValueRef, args: &[JSValueRef]| {
         if args.len() != 5 {
             return Err(anyhow!("Expecting 5 arguments, received {}", args.len()));
         }
@@ -65,8 +68,8 @@ fn decode_utf8_buffer_to_js_string(
 }
 
 fn encode_js_string_to_utf8_buffer(
-) -> impl FnMut(&JSContextRef, &CallbackArg, &[CallbackArg]) -> anyhow::Result<JSValue> {
-    move |_ctx: &JSContextRef, _this: &CallbackArg, args: &[CallbackArg]| {
+) -> impl FnMut(&JSContextRef, JSValueRef, &[JSValueRef]) -> anyhow::Result<JSValue> {
+    move |_ctx: &JSContextRef, _this: JSValueRef, args: &[JSValueRef]| {
         if args.len() != 1 {
             return Err(anyhow!("Expecting 1 argument, got {}", args.len()));
         }
@@ -78,22 +81,22 @@ fn encode_js_string_to_utf8_buffer(
 
 #[cfg(test)]
 mod tests {
-    use crate::runtime;
-
-    use super::inject_javy_globals;
+    use crate::{APIConfig, JSApiSet};
     use anyhow::Result;
+    use javy::Runtime;
+
+    use super::TextEncoding;
 
     #[test]
     fn test_text_encoder_decoder() -> Result<()> {
-        let runtime = runtime::new_runtime()?;
-        let ctx = runtime.context();
-        inject_javy_globals(&runtime)?;
-        ctx.eval_global(
+        let runtime = Runtime::default();
+        let context = runtime.context();
+        TextEncoding.register(&runtime, &APIConfig::default())?;
+        let result = context.eval_global(
             "main",
-            "let encoder = new TextEncoder(); let buffer = encoder.encode('hello'); let decoder = new TextDecoder(); globalThis.foo = decoder.decode(buffer);"
+            "let encoder = new TextEncoder(); let buffer = encoder.encode('hello'); let decoder = new TextDecoder(); decoder.decode(buffer) == 'hello';"
         )?;
-        assert_eq!("hello", ctx.global_object()?.get_property("foo")?.as_str()?);
-
+        assert!(result.as_bool()?);
         Ok(())
     }
 }

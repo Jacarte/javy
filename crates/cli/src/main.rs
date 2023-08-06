@@ -1,20 +1,19 @@
 mod bytecode;
 mod commands;
-mod module_generator;
-mod opt;
-mod transform;
+mod exports;
+mod js;
+mod wasm_generator;
+mod wit;
 
-use crate::commands::{Command, CompileCommandOpts, EmitProviderCommandOpts};
-use anyhow::{bail, Context, Result};
-use std::env;
+use crate::commands::{Command, EmitProviderCommandOpts};
+use crate::wasm_generator::r#static as static_generator;
+use anyhow::{bail, Result};
+use js::JS;
+use std::fs;
 use std::fs::File;
-use std::io::{Read, Write};
-use std::path::Path;
-use std::process::Stdio;
-use std::{fs, process::Command as OsCommand};
+use std::io::Write;
 use structopt::StructOpt;
-use wasm_encoder::RawSection;
-use wasmparser::{Parser, Payload::CustomSection};
+use wasm_generator::dynamic as dynamic_generator;
 
 fn main() -> Result<()> {
     let cmd = Command::from_args();
@@ -22,11 +21,20 @@ fn main() -> Result<()> {
     match &cmd {
         Command::EmitProvider(opts) => emit_provider(opts),
         Command::Compile(opts) => {
-            if opts.dynamic {
-                create_dynamically_linked_module(opts)
+            let js = JS::from_file(&opts.input)?;
+            let exports = match (&opts.wit, &opts.wit_world) {
+                (None, None) => Ok(vec![]),
+                (None, Some(_)) => Ok(vec![]),
+                (Some(_), None) => bail!("Must provide WIT world when providing WIT file"),
+                (Some(wit), Some(world)) => exports::process_exports(&js, wit, world),
+            }?;
+            let wasm = if opts.dynamic {
+                dynamic_generator::generate(&js, exports)?
             } else {
-                create_statically_linked_module(opts)
-            }
+                static_generator::generate(&js, exports)?
+            };
+            fs::write(&opts.output, wasm)?;
+            Ok(())
         }
     }
 }
@@ -38,90 +46,4 @@ fn emit_provider(opts: &EmitProviderCommandOpts) -> Result<()> {
     };
     file.write_all(bytecode::QUICKJS_PROVIDER_MODULE)?;
     Ok(())
-}
-
-fn create_statically_linked_module(opts: &CompileCommandOpts) -> Result<()> {
-    let wizen = env::var("JAVY_WIZEN");
-
-    if wizen.eq(&Ok("1".into())) {
-        let wasm: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/engine.wasm"));
-        opt::Optimizer::new(wasm)
-            .optimize(true)
-            .write_optimized_wasm(&opts.output)?;
-
-        env::remove_var("JAVY_WIZEN");
-
-        return Ok(());
-    }
-
-    let contents = read_input_file(&opts.input)?;
-
-    let self_cmd = env::args().next().unwrap();
-
-    {
-        env::set_var("JAVY_WIZEN", "1");
-        let mut command = OsCommand::new(self_cmd)
-            .arg("compile")
-            .arg(&opts.input)
-            .arg("-o")
-            .arg(&opts.output)
-            .stdin(Stdio::piped())
-            .spawn()?;
-        command.stdin.take().unwrap().write_all(&contents)?;
-        let status = command.wait()?;
-        if !status.success() {
-            bail!("Couldn't create wasm from input");
-        }
-    }
-
-    add_producers_and_source_code_sections(&opts.output, &contents)?;
-
-    Ok(())
-}
-
-fn add_producers_and_source_code_sections<P: AsRef<Path>>(file: P, contents: &[u8]) -> Result<()> {
-    let input = fs::read(&file)?;
-    let mut module = wasm_encoder::Module::new();
-    for payload in Parser::new(0).parse_all(&input) {
-        let payload = payload?;
-
-        // remove existing producers custom section
-        if let CustomSection(section) = &payload {
-            if section.name() == transform::PRODUCERS_SECTION_NAME {
-                continue;
-            }
-        }
-
-        if let Some((id, range)) = payload.as_section() {
-            module.section(&RawSection {
-                id,
-                data: &input[range],
-            });
-        }
-    }
-
-    transform::add_source_code_section(&mut module, contents)?;
-    transform::add_producers_section(&mut module)?;
-
-    let module_bytes = module.finish();
-    wasmparser::validate(&module_bytes)?;
-    fs::write(&file, module_bytes)?;
-    Ok(())
-}
-
-fn create_dynamically_linked_module(opts: &CompileCommandOpts) -> Result<()> {
-    let js_source_code = read_input_file(&opts.input)?;
-    let quickjs_bytecode = bytecode::compile_source(&js_source_code)?;
-    let wasm_module = module_generator::generate_module(quickjs_bytecode, &js_source_code)?;
-    let mut output_file = fs::File::create(&opts.output)?;
-    output_file.write_all(&wasm_module)?;
-    Ok(())
-}
-
-fn read_input_file(path: &Path) -> Result<Vec<u8>> {
-    let mut input_file = fs::File::open(path)
-        .with_context(|| format!("Failed to open input file {}", path.display()))?;
-    let mut contents: Vec<u8> = vec![];
-    input_file.read_to_end(&mut contents)?;
-    Ok(contents)
 }

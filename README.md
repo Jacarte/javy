@@ -1,6 +1,17 @@
-# Javy: A *Jav*aScript to WebAssembl*y* toolchain
+<div align="center">
+  <h1><code>Javy</code></h1>
 
-![Build status](https://github.com/Shopify/javy/actions/workflows/ci.yml/badge.svg?branch=main)
+  <p>
+    <strong>A <i>Jav</i>aScript to Webassembl<i>y</i> toolchain</strong>
+  </p>
+
+  <strong>A <a href="https://bytecodealliance.org/">Bytecode Alliance</a> project</strong>
+
+  <p>
+    <a href="https://github.com/bytecodealliance/javy/actions/workflows/ci.yml"><img alt="Build status" src="https://github.com/bytecodealliance/javy/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
+    <a href="https://bytecodealliance.zulipchat.com/#narrow/stream/370816-javy"><img src="https://img.shields.io/badge/zulip-join_chat-brightgreen.svg" alt="zulip chat" /></a>
+  </p>
+</div>
 
 ## About this repo
 
@@ -16,39 +27,50 @@ When running the official Javy binary on Linux, `glibc` 2.31 or greater must be 
 
 We welcome feedback, bug reports and bug fixes. We're also happy to discuss feature development but please discuss the features in an issue before contributing.
 
-### Adding additional JS APIs
+Read our [contribution documentation](docs/contributing.md) for additional information on contributing to Javy.
 
-We will only add JS APIs or accept contributions that add JS APIs that are potentially useful across multiple environments and do not invoke non-[WASI](https://wasi.dev/) hostcalls. If you wish to add or use JS APIs that do not meet these criteria, please use the `quickjs-wasm-rs` crate directly. We may revisit how we support importing and exporting custom functionality from Javy once [the Component Model](https://github.com/WebAssembly/component-model) has stabilized.
+## Requirements to build
 
-## Build
-
+- On Ubuntu, `sudo apt-get install curl pkg-config libssl-dev clang`
 - [rustup](https://rustup.rs/)
-- Stable Rust (`rustup install stable && rustup default stable`)
+- Stable Rust, installed via `rustup install stable && rustup default stable`
 - wasm32-wasi, can be installed via `rustup target add wasm32-wasi`
 - cmake, depending on your operating system and architecture, it might not be
-  installed by default. On Mac it can be installed with `homebrew` via `brew
-  install cmake`
+  installed by default. On MacOS it can be installed with `homebrew` via `brew
+  install cmake`. On Ubuntu, `sudo apt-get install cmake`.
 - Rosetta 2 if running MacOS on Apple Silicon, can be installed via
   `softwareupdate --install-rosetta`
-- Install the `wasi-sdk` by running `make download-wasi-sdk` in the top-level directory in this repository
 
-## Development
+## Development requirements
 
 - wasmtime-cli, can be installed via `cargo install wasmtime-cli` (required for
   `cargo-wasi`)
 - cargo-wasi, can be installed via `cargo install cargo-wasi`
-- wizer, can be installed via `cargo install wizer --all-features`
+- cargo-hack, can be installed via `cargo +stable install cargo-hack --locked`
 
-## Building
+## How to build
 
-After all the dependencies are installed, run `make` in the top-level directory of this repository. You
-should now have access to the executable in `target/release/javy`.
+Inside the Javy repository, run:
+```
+$ cargo build -p javy-core --target=wasm32-wasi -r
+$ cargo build -p javy-cli -r
+```
 
-Alternatively you can run `make && cargo install --path crates/cli`.
-After running the previous command you'll have a global installation of the
-executable.
+Alternatively if you want to install the Javy CLI globally, inside the Javy repository run:
+```
+$ cargo build -p javy-core --target=wasm32-wasi -r
+$ cargo install --path crates/cli
+```
 
-## Compiling to WebAssembly
+If you are going to recompile frequently, you may want to prepend `CARGO_PROFILE_RELEASE_LTO=off` to cargo build for the CLI to speed up the build.
+
+## Using Javy
+
+Pre-compiled binaries of the Javy CLI can be found on [the releases page](https://github.com/bytecodealliance/javy/releases).
+
+Javy supports ECMA2020 JavaScript. Javy does _not_ provide support for NodeJS or CommonJS APIs.
+
+### Compiling to WebAssembly
 
 Define your JavaScript like:
 
@@ -120,6 +142,101 @@ $ echo '{ "n": 2, "bar": "baz" }' | wasmtime index.wasm
 {"foo":3,"newBar":"baz!"}%   
 ```
 
+### Exporting functions
+
+To export exported JavaScript functions, you can pass a WIT file and WIT world when running `javy compile`. Only ESM exports are supported (that is, Node.js/CommonJS exports are _not_ supported). For each exported JavaScript function, Javy will add an additional function export to the WebAssembly module. Exported functions with arguments and generators are not supported. Return values will also be dropped and not returned. The Wasm module generated is a core Wasm module, **not** a Wasm component.
+
+An example looks like:
+
+`index.js`:
+```javascript
+export function foo() {
+  console.log("Hello from foo!");
+}
+
+console.log("Hello world!");
+```
+
+`index.wit`:
+```
+package local:main
+
+world index-world {
+  export foo: func() 
+}
+```
+
+In the terminal:
+```bash
+$ javy compile index.js --wit index.wit -n index-world -o index.wasm
+$ wasmtime run --invoke foo index.wasm
+Hello world!
+Hello from foo!
+```
+
+The WIT package name and WIT world name do not matter as long as they are present and syntactically correct WIT (that is, it needs to be two names separated by a `:`). The name of the WIT world (that is, the value after `world` and before `{`) must be passed as the `-n` argument. The `-n` argument identifies the WIT world in the WIT file for the Wasm module generated by `javy compile`.
+
+#### Exports with multiple words
+
+Exported function names with multiple words have to written in kebab-case in the WIT file (that is a restriction imposed by WIT), they are exported from the Wasm module as kebab-case to match the WIT, and Javy will match the WIT export to a JS export with the same name but in camel-case.
+
+`index.js`:
+```javascript
+export function fooBar() {
+  console.log("In foo-bar");
+}
+```
+
+`index.wit`:
+```
+package local:main
+
+world index {
+  export foo-bar: func() 
+}
+```
+
+In the terminal:
+```bash
+$ javy compile index.js --wit index.wit -n index -o index.wasm
+$ wasmtime run --invoke foo-bar index.wasm
+In foo-bar
+```
+
+#### Exporting a default function
+
+Exporting a function named `default` in the WIT world exports a function named `default` on the Wasm module and corresponds to either an exported default function or exported default arrow function in JS.
+
+`index.js`:
+```javascript
+export default function () {
+  console.log("In default");
+}
+```
+
+`index.wit`:
+```
+package local:main
+
+world index {
+  export default: func() 
+}
+```
+
+In the terminal:
+```bash
+$ javy compile index.js --wit index.wit -n index -o index.wasm
+$ wasmtime run --invoke default index.wasm
+In default
+```
+
+You can also export a default function by writing:
+```javascript
+export default () => {
+  console.log("default");
+}
+```
+
 ### Invoking Javy-generated modules programatically
 
 Javy-generated modules are by design WASI only and follow the [command pattern](https://github.com/WebAssembly/WASI/blob/snapshot-01/design/application-abi.md#current-unstable-abi). Any input must be passed via `stdin` and any output will be placed in `stdout`. This is especially important when invoking Javy modules from a custom embedding. 
@@ -128,7 +245,7 @@ In a runtime like Wasmtime, [wasmtime-wasi](
 https://docs.rs/wasmtime-wasi/latest/wasmtime_wasi/struct.WasiCtx.html#method.set_stdin)
 can be used to set the input and retrieve the output.
 
-## Creating and using dynamically linked modules
+### Creating and using dynamically linked modules
 
 An important use for Javy is for when you may want or need to generate much smaller Wasm modules. Using the `-d` flag when invoking Javy will create a dynamically linked module which will have a much smaller file size than a statically linked module. Statically linked modules embed the JS engine inside the module while dynamically linked modules rely on Wasm imports to provide the JS engine. Dynamically linked modules have special requirements that statically linked modules do not and will not execute in WebAssembly runtimes that do not meet these requirements.
 
@@ -136,11 +253,11 @@ To successfully instantiate and run a dynamically linked Javy module, the execut
 
 Dynamically linked Javy modules are tied to QuickJS since they use QuickJS's bytecode representation.
 
-### Obtaining the QuickJS provider module
+#### Obtaining the QuickJS provider module
 
 The `javy_quickjs_provider.wasm` module is available as an asset on the Javy release you are using. It can also be obtained by running `javy emit-provider -o <path>` to write the module into `<path>`.
 
-### Creating and running a dynamically linked module on the CLI
+#### Creating and running a dynamically linked module on the CLI
 
 ```
 $ echo 'console.log("hello world!");' > my_code.js
@@ -156,10 +273,11 @@ The `quickjs-wasm-rs` crate that is part of this project can be used as part of 
 
 ## Releasing
 
-1. Create a tag for the new version like `v0.2.0`
+1. Update the root `Cargo.toml` with the new version
+2. Create a tag for the new version like `v0.2.0`
 ```
 git tag v0.2.0
 git push origin --tags
 ```
-2. Create a new release from the new tag in github [here](https://github.com/Shopify/javy/releases/new).
-3. A GitHub Action will trigger for `publish.yml` when a release is published ([i.e. it doesn't run on drafts](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#:~:text=created%2C%20edited%2C%20or%20deleted%20activity%20types%20for%20draft%20releases)), creating the artifacts for downloading.
+3. Create a new release from the new tag in github [here](https://github.com/bytecodealliance/javy/releases/new).
+4. A GitHub Action will trigger for `publish.yml` when a release is published ([i.e. it doesn't run on drafts](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#:~:text=created%2C%20edited%2C%20or%20deleted%20activity%20types%20for%20draft%20releases)), creating the artifacts for downloading.

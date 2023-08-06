@@ -8,25 +8,37 @@ import * as stream from "stream";
 import fetch from "node-fetch";
 import cachedir from "cachedir";
 
-const REPO = "Shopify/javy";
+const REPO = "bytecodealliance/javy";
 const NAME = "javy";
 
 async function main() {
-	const version = await getDesiredVersionNumber();
-	if (!(await isBinaryDownloaded(version))) {
-		if (process.env.FORCE_FROM_SOURCE) {
-			await buildBinary();
-		} else {
-			await downloadBinary(version);
-		}
-	}
 	try {
-		childProcess.spawnSync(binaryPath(version), getArgs(), {
+		const version = await getDesiredVersionNumber();
+		if (!(await isBinaryDownloaded(version))) {
+			if (process.env.FORCE_FROM_SOURCE) {
+				await buildBinary(version);
+			} else {
+				await downloadBinary(version);
+			}
+		}
+		const result = childProcess.spawnSync(binaryPath(version), getArgs(), {
 			stdio: "inherit",
 		});
+		process.exitCode = result.status === null ? 1 : result.status;
+		if (result.error?.code === "ENOENT") {
+			console.error("Failed to start Javy. If on Linux, check if glibc is installed.");
+		} else if (result.error?.code === "EACCES") {
+			// This can happen if a previous version of javy-cli did not successfully download the binary.
+			// It would have created an empty file at `binaryPath(version)` without the execute bit set,
+			// which would result in an `EACCES` error code.
+			// We delete the cached binary because that cached binary will never run successfully and
+			// stops `javy-cli` from redownloading the binary.
+			console.error(`${NAME} was not downloaded correctly. Please retry.`);
+			fs.unlinkSync(binaryPath(version));
+		}
 	} catch (e) {
-		if (typeof e?.status === "number") return;
 		console.error(e);
+		process.exitCode = 2;
 	}
 }
 main();
@@ -50,10 +62,13 @@ async function isBinaryDownloaded(version) {
 
 async function downloadBinary(version) {
 	const targetPath = binaryPath(version);
-	const compressedStream = await new Promise(async (resolve) => {
+	const compressedStream = await new Promise(async (resolve, reject) => {
 		const url = binaryUrl(version);
-		console.log(`Downloading ${NAME} ${version} to ${targetPath}...`);
+		console.log(`Downloading ${NAME} ${version} to ${targetPath}`);
 		const resp = await fetch(url);
+		if (resp.status !== 200) {
+			return reject(`Downloading ${NAME} failed with status code of ${resp.status}`);
+		}
 		resolve(resp.body);
 	});
 	const gunzip = gzip.createGunzip();
@@ -151,15 +166,14 @@ function getArgs() {
 	return args;
 }
 
-async function buildBinary() {
+async function buildBinary(version) {
 	const repoDir = cacheDir("build", NAME);
 	try {
 		console.log(`Downloading ${NAME}'s source code...`);
+		fs.rmSync(repoDir, { recursive: true });
 		childProcess.execSync(
 			`git clone https://github.com/${REPO} ${repoDir}`
 		);
-		console.log("Downloading WASI SDK...");
-		childProcess.execSync("make download-wasi-sdk", { cwd: repoDir });
 		console.log(`Building ${NAME}...`);
 		childProcess.execSync("make", { cwd: repoDir });
 	} catch (e) {
@@ -173,6 +187,6 @@ async function buildBinary() {
 	}
 	await fs.promises.rename(
 		path.join(repoDir, "target", "release", NAME),
-		binaryPath()
+		binaryPath(version)
 	);
 }

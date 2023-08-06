@@ -2,7 +2,7 @@ use super::constants::{MAX_SAFE_INTEGER, MIN_SAFE_INTEGER};
 use super::error::JSError;
 use super::exception::Exception;
 use super::value::JSValueRef;
-use crate::js_value::{self, qjs_convert, CallbackArg};
+use crate::js_value::{self, qjs_convert};
 use anyhow::{anyhow, Result};
 use once_cell::sync::Lazy;
 use quickjs_wasm_sys::{
@@ -88,16 +88,53 @@ impl JSContextRef {
     /// context.eval_global("test.js", "1 + 1")?;
     /// ```
     pub fn eval_global(&self, name: &str, contents: &str) -> Result<JSValueRef> {
+        self.eval(name, contents, EvalType::Global, false)
+    }
+
+    /// Evaluates JavaScript code in an ECMAScript module scope.
+    ///
+    /// This method takes JavaScript code as a string and evaluates it in a
+    /// ECMAScript module scope.
+    ///
+    /// # Arguments
+    ///
+    /// * `name`: A string representing the name of the module.
+    /// * `contents`: The JavaScript code to be evaluated as a string.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let contenxt = JSContextRef::default();
+    /// content.eval_module("test.js", "1 + 1")?;
+    /// ```
+    pub fn eval_module(&self, name: &str, contents: &str) -> Result<JSValueRef> {
+        self.eval(name, contents, EvalType::Module, false)
+    }
+
+    fn eval(
+        &self,
+        name: &str,
+        contents: &str,
+        eval_as: EvalType,
+        compile_only: bool,
+    ) -> Result<JSValueRef> {
         let input = CString::new(contents)?;
         let script_name = CString::new(name)?;
         let len = contents.len() - 1;
+        let mut eval_flags = match eval_as {
+            EvalType::Global => JS_EVAL_TYPE_GLOBAL,
+            EvalType::Module => JS_EVAL_TYPE_MODULE,
+        };
+        if compile_only {
+            eval_flags |= JS_EVAL_FLAG_COMPILE_ONLY;
+        }
         let raw = unsafe {
             JS_Eval(
                 self.inner,
                 input.as_ptr(),
                 len as _,
                 script_name.as_ptr(),
-                JS_EVAL_TYPE_GLOBAL as i32,
+                eval_flags as i32,
             )
         };
 
@@ -111,7 +148,7 @@ impl JSContextRef {
     /// * `name`: A string representing the name of the script.
     /// * `contents`: The JavaScript code to be compiled as a string.
     pub fn compile_module(&self, name: &str, contents: &str) -> Result<Vec<u8>> {
-        self.compile(name, contents, CompileType::Module)
+        self.compile(name, contents, EvalType::Module)
     }
 
     /// Compiles JavaScript to QuickJS bytecode with a global scope.
@@ -121,35 +158,18 @@ impl JSContextRef {
     /// * `name`: A string representing the name of the script.
     /// * `contents`: The JavaScript code to be compiled as a string.
     pub fn compile_global(&self, name: &str, contents: &str) -> Result<Vec<u8>> {
-        self.compile(name, contents, CompileType::Global)
+        self.compile(name, contents, EvalType::Global)
     }
 
-    fn compile(&self, name: &str, contents: &str, compile_as: CompileType) -> Result<Vec<u8>> {
-        let input = CString::new(contents)?;
-        let script_name = CString::new(name)?;
-        let len = contents.len() - 1;
-        let compile_type = match compile_as {
-            CompileType::Global => JS_EVAL_TYPE_GLOBAL,
-            CompileType::Module => JS_EVAL_TYPE_MODULE,
-        };
-        let raw = unsafe {
-            JS_Eval(
-                self.inner,
-                input.as_ptr(),
-                len as _,
-                script_name.as_ptr(),
-                (JS_EVAL_FLAG_COMPILE_ONLY | compile_type) as i32,
-            )
-        };
-        // returns err with details if JS_Eval fails
-        JSValueRef::new(self, raw)?;
+    fn compile(&self, name: &str, contents: &str, compile_as: EvalType) -> Result<Vec<u8>> {
+        let raw = self.eval(name, contents, compile_as, true)?;
 
         let mut output_size = 0;
         unsafe {
             let output_buffer = JS_WriteObject(
                 self.inner,
                 &mut output_size,
-                raw,
+                raw.value,
                 JS_WRITE_OBJ_BYTECODE as i32,
             );
             Ok(Vec::from_raw_parts(
@@ -313,24 +333,24 @@ impl JSContextRef {
 
     /// Wrap the specified function in a JS function.
     ///
-    /// Since the callback signature accepts parameters as high-level `JSContextRef` and `CallbackArg` objects, it can be
+    /// Since the callback signature accepts parameters as high-level `JSContextRef` and `JSValueRef` objects, it can be
     /// implemented without using `unsafe` code, unlike [JSContextRef::new_callback] which provides a low-level API.
     /// Returning a [JSError] from the callback will cause a JavaScript error with the appropriate
     /// type to be thrown.
     pub fn wrap_callback<F>(&self, mut f: F) -> Result<JSValueRef>
     where
-        F: (FnMut(&Self, &CallbackArg, &[CallbackArg]) -> Result<js_value::JSValue>) + 'static,
+        F: (FnMut(&Self, JSValueRef, &[JSValueRef]) -> Result<js_value::JSValue>) + 'static,
     {
         let wrapped = move |inner, this, argc, argv: *mut JSValue, _| {
             let inner_ctx = JSContextRef { inner };
             match f(
                 &inner_ctx,
-                &CallbackArg::new(JSValueRef::new_unchecked(&inner_ctx, this)),
+                JSValueRef::new_unchecked(&inner_ctx, this),
                 &(0..argc)
                     .map(|offset| {
-                        CallbackArg::new(JSValueRef::new_unchecked(&inner_ctx, unsafe {
+                        JSValueRef::new_unchecked(&inner_ctx, unsafe {
                             *argv.offset(offset as isize)
-                        }))
+                        })
                     })
                     .collect::<Box<[_]>>(),
             ) {
@@ -483,7 +503,7 @@ fn get_rust_value<T: 'static>(raw: JSValue) -> Result<&'static RefCell<T>> {
     }
 }
 
-enum CompileType {
+enum EvalType {
     Global,
     Module,
 }
@@ -518,6 +538,24 @@ mod tests {
         let ctx = JSContextRef::default();
         let contents = "a + 1 * z;";
         let val = ctx.eval_global(SCRIPT_NAME, contents);
+        assert!(val.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_context_evaluates_code_in_a_module() -> Result<()> {
+        let ctx = JSContextRef::default();
+        let contents = "export let a = 1;";
+        let val = ctx.eval_module(SCRIPT_NAME, contents);
+        assert!(val.is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn test_context_reports_invalid_module_code() -> Result<()> {
+        let ctx = JSContextRef::default();
+        let contents = "a + 1 * z;";
+        let val = ctx.eval_module(SCRIPT_NAME, contents);
         assert!(val.is_err());
         Ok(())
     }

@@ -1,9 +1,6 @@
 .PHONY: cli core test fmt clean
 .DEFAULT_GOAL := cli
 
-download-wasi-sdk:
-	./install-wasi-sdk.sh
-
 install:
 	cargo install --path crates/cli
 
@@ -11,14 +8,14 @@ bench: cli
 	cargo bench --package=javy-cli
 
 check-bench:
-	cargo check --package=javy-cli --release --benches
+	CARGO_PROFILE_RELEASE_LTO=off cargo check --package=javy-cli --release --benches
 
+# Disabling LTO substantially improves compile time
 cli: core
-	cargo build --package=javy-cli --release
+	CARGO_PROFILE_RELEASE_LTO=off cargo build --package=javy-cli --release
 
 core:
 	cargo build --package=javy-core --release --target=wasm32-wasi --features=$(CORE_FEATURES)
-	wizer target/wasm32-wasi/release/javy_quickjs_provider.wasm --allow-wasi --wasm-bulk-memory true -o target/wasm32-wasi/release/javy_quickjs_provider_wizened.wasm
 
 docs:
 	cargo doc --package=javy-cli --open
@@ -31,15 +28,16 @@ test-javy:
 	cargo wasi test --package=javy --features json,messagepack -- --nocapture
 
 test-apis:
-	cargo wasi test --package=javy-apis --all-features -- --nocapture
+	cargo hack wasi test --package=javy-apis --each-feature -- --nocapture
 
 test-core:
 	cargo wasi test --package=javy-core -- --nocapture
 
 # Test in release mode to skip some debug assertions
 # Note: to make this faster, the engine should be optimized beforehand (wasm-strip + wasm-opt).
+# Disabling LTO substantially improves compile time
 test-cli: core
-	cargo test --package=javy-cli --release --features=$(CLI_FEATURES) -- --nocapture
+	CARGO_PROFILE_RELEASE_LTO=off cargo test --package=javy-cli --release --features=$(CLI_FEATURES) -- --nocapture
 
 # WPT requires a Javy build with the experimental_event_loop feature to pass
 test-wpt: export CORE_FEATURES ?= experimental_event_loop
@@ -77,7 +75,7 @@ fmt-core:
 # This reduces the size of the target directory which improves CI stability.
 fmt-cli:
 	cargo fmt --package=javy-cli -- --check
-	cargo clippy --package=javy-cli --release --all-targets -- -D warnings
+	CARGO_PROFILE_RELEASE_LTO=off cargo clippy --package=javy-cli --release --all-targets -- -D warnings
 
 clean: clean-wasi-sdk clean-cargo
 

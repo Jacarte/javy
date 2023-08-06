@@ -24,6 +24,23 @@
 //! context.eval_global("hello.js", "print('hello!');")?;
 //! # Ok::<(), Error>(())
 //! ```
+//!
+//! If you want to customize the runtime or the APIs, you can use the
+//! [`Runtime::new_with_apis`] method instead to provide a [`javy::Config`]
+//! for the underlying [`Runtime`] or an [`APIConfig`] for the APIs.
+//!
+//! ## Features
+//! * `console` - Registers an implementation of the `console` API.
+//! * `text_encoding` - Registers implementations of `TextEncoder` and `TextDecoder`.
+//! * `random` - Overrides the implementation of `Math.random` to one that
+//!   seeds the RNG on first call to `Math.random`. This is helpful to enable
+//!   when using Wizer to snapshot a [`javy::Runtime`] so that the output of
+//!   `Math.random` relies on the WASI context used at runtime and not the
+//!   WASI context used when Wizening. Enabling this feature will increase the
+//!   size of the Wasm module that includes the Javy Runtime and will
+//!   introduce an additional hostcall invocation when `Math.random` is
+//!   invoked for the first time.
+//! * `stream_io` - Registers implementations of `Javy.IO.readSync` and `Javy.IO.writeSync`.
 
 use anyhow::Result;
 use javy::Runtime;
@@ -36,9 +53,13 @@ pub use runtime_ext::RuntimeExt;
 mod api_config;
 #[cfg(feature = "console")]
 mod console;
+#[cfg(feature = "random")]
+mod random;
 mod runtime_ext;
 #[cfg(feature = "stream_io")]
 mod stream_io;
+#[cfg(feature = "text_encoding")]
+mod text_encoding;
 
 #[cfg(feature = "node_red")]
 mod node_red;
@@ -64,6 +85,8 @@ pub(crate) trait JSApiSet {
 pub fn add_to_runtime(runtime: &Runtime, config: APIConfig) -> Result<()> {
     #[cfg(feature = "console")]
     console::Console::new().register(runtime, &config)?;
+    #[cfg(feature = "random")]
+    random::Random.register(runtime, &config)?;
     #[cfg(feature = "stream_io")]
     stream_io::StreamIO.register(runtime, &config)?;
 
@@ -73,5 +96,7 @@ pub fn add_to_runtime(runtime: &Runtime, config: APIConfig) -> Result<()> {
     #[cfg(feature = "trace_lock")]
     trace_lock::TraceLock.register(runtime, &config)?;
 
+    #[cfg(feature = "text_encoding")]
+    text_encoding::TextEncoding.register(runtime, &config)?;
     Ok(())
 }

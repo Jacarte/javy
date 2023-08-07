@@ -9,16 +9,7 @@ pub(super) struct Process;
 
 impl JSApiSet for Process {
     fn register(&self, runtime: &Runtime, _config: &APIConfig) -> Result<()> {
-        let context = runtime.context();
-        let global = context.global_object()?;
-
-        let mut javy_object = global.get_property("process")?;
-        if javy_object.is_undefined() {
-            javy_object = context.object_value()?;
-            global.set_property("process", javy_object)?;
-        }
-
-
+        
         Ok(())
     }
 }
@@ -27,14 +18,14 @@ impl JSApiSet for Process {
 
 #[cfg(test)]
 mod tests {
-    use crate::{random::Random, APIConfig, JSApiSet};
+    use crate::{Process, APIConfig, JSApiSet};
     use anyhow::Result;
     use javy::Runtime;
 
     #[test]
-    fn test_random() -> Result<()> {
+    fn test_date() -> Result<()> {
         let runtime = Runtime::default();
-        Random.register(&runtime, &APIConfig::default())?;
+        Process.register(&runtime, &APIConfig::default())?;
         let ctx = runtime.context();
         // Return time since 1970 in microseconds
         ctx.eval_global("test.js", "result = __date_clock()")?;
@@ -42,4 +33,5 @@ mod tests {
         println!("{:?}", result);
         Ok(())
     }
+
 }

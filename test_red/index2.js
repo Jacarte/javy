@@ -1,6 +1,8 @@
 function main(){
 
-  Node.IO.send("hello world");
+  Node.IO.send({
+    "payload": "hello world"
+  });
 }
 
 main()

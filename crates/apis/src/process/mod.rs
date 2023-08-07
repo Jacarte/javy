@@ -18,7 +18,7 @@ impl JSApiSet for Process {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Process, APIConfig, JSApiSet};
+    use crate::{process::Process, APIConfig, JSApiSet};
     use anyhow::Result;
     use javy::Runtime;
 

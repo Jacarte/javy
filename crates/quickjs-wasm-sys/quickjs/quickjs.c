@@ -47848,7 +47848,7 @@ static const JSCFunctionListEntry js_global_funcs[] = {
 
     /* for the 'Date' implementation */
     JS_CFUNC_DEF("__date_clock", 0, js___date_clock ),
-    //JS_CFUNC_DEF("__date_now", 0, js___date_now ),
+    // JS_CFUNC_DEF("__date_now", 0, js___date_now ),
     //JS_CFUNC_DEF("__date_getTimezoneOffset", 1, js___date_getTimezoneOffset ),
     //JS_CFUNC_DEF("__date_create", 3, js___date_create ),
 };

@@ -59,7 +59,7 @@ impl JSApiSet for NodeRed {
 
 
                 // Parse the data
-                let data = unsafe { data.inner_value() };
+                // let data = unsafe { data.inner_value() };
                 if !data.is_array_buffer() {
                     anyhow::bail!("Data needs to be an ArrayBuffer");
                 }
@@ -86,7 +86,7 @@ impl JSApiSet for NodeRed {
 
 
                 // Parse the data
-                let data = unsafe { data.inner_value() };
+                // let data = unsafe { data.inner_value() };
                 if !data.is_array_buffer() {
                     anyhow::bail!("Data needs to be an ArrayBuffer");
                 }
@@ -111,7 +111,7 @@ impl JSApiSet for NodeRed {
                     anyhow::bail!("Invalid number of parameters")
                 };
 
-                let data = unsafe { data.inner_value() };
+                // let data = unsafe { data.inner_value() };
                 if !data.is_array_buffer() {
                     anyhow::bail!("Data needs to be an ArrayBuffer");
                 }
@@ -130,7 +130,7 @@ impl JSApiSet for NodeRed {
                     anyhow::bail!("Invalid number of parameters")
                 };
 
-                let data = unsafe { data.inner_value() };
+                // let data = unsafe { data.inner_value() };
                 if !data.is_array_buffer() {
                     anyhow::bail!("Data needs to be an ArrayBuffer");
                 }
@@ -148,10 +148,11 @@ impl JSApiSet for NodeRed {
                     anyhow::bail!("Invalid number of parameters")
                 };
 
-                let data = unsafe { data.inner_value() };
+                // let data = unsafe { data.inner_value() };
                 if !data.is_array_buffer() {
                     anyhow::bail!("Data needs to be an ArrayBuffer");
                 }
+
                 // It does not need to be mut
                 let data = data.as_bytes_mut()?.as_ptr();
                 unsafe { node_red_result(data.try_into()?, offset.try_into()?, length.try_into()?) };

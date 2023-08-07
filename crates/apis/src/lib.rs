@@ -67,6 +67,9 @@ mod node_red;
 #[cfg(feature = "trace_lock")]
 mod trace_lock;
 
+#[cfg(feature = "process")]
+mod process;
+
 pub(crate) trait JSApiSet {
     fn register(&self, runtime: &Runtime, config: &APIConfig) -> Result<()>;
 }

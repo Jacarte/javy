@@ -33,6 +33,9 @@
 //! * `console` - Registers an implementation of the `console` API.
 //! * `text_encoding` - Registers implementations of `TextEncoder` and `TextDecoder`.
 //! * `random` - Overrides the implementation of `Math.random` to one that
+//! * `node_red` - Contains the logic to interact with Wasm-RED implementation
+//! * `fs` - Contains the logic to interact with the filesystem
+//! * `http` - Contains the logic to interact with HTTP requests
 //!   seeds the RNG on first call to `Math.random`. This is helpful to enable
 //!   when using Wizer to snapshot a [`javy::Runtime`] so that the output of
 //!   `Math.random` relies on the WASI context used at runtime and not the
@@ -70,6 +73,12 @@ mod trace_lock;
 #[cfg(feature = "process")]
 mod process;
 
+#[cfg(feature = "fs")]
+mod fs;
+
+#[cfg(feature = "http")]
+mod http;
+
 pub(crate) trait JSApiSet {
     fn register(&self, runtime: &Runtime, config: &APIConfig) -> Result<()>;
 }
@@ -101,5 +110,12 @@ pub fn add_to_runtime(runtime: &Runtime, config: APIConfig) -> Result<()> {
 
     #[cfg(feature = "text_encoding")]
     text_encoding::TextEncoding.register(runtime, &config)?;
+
+    #[cfg(feature = "fs")]
+    fs::FS.register(runtime, &config)?;
+
+    #[cfg(feature = "http")]
+    http::HTTP.register(runtime, &config)?;
+
     Ok(())
 }

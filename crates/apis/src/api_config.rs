@@ -9,4 +9,7 @@
 pub struct APIConfig {
     #[cfg(feature = "console")]
     pub(crate) console: crate::console::ConsoleConfig,
+
+    #[cfg(feature = "fs")]
+    pub(crate) fs: crate::fs::FSConfig,
 }

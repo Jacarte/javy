@@ -1,0 +1,4 @@
+# HTTP API
+
+- We use reqwest crate since it can compile to Wasm-WASI
+- The config file should have the whitelist of allowed domains, methods and endpoints

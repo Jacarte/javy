@@ -27,9 +27,14 @@ pub struct CompileCommandOpts {
     pub dynamic: bool,
 
     #[structopt(long = "wit")]
-    /// Optional path to WIT file describing exported functions.
+    /// Optional path to WIT file describing exported functions and fs/http permissions
     /// Only supports function exports with no arguments and no return values.
     pub wit: Option<PathBuf>,
+
+    #[structopt(long = "file-permissions")]
+    /// Optional path to WIT file describing exported functions and fs/http permissions
+    /// Only supports function exports with no arguments and no return values.
+    pub fpermissions: Option<PathBuf>,
 
     #[structopt(short = "n")]
     /// Optional WIT world name for WIT file. Must be specified if WIT is file path is specified.

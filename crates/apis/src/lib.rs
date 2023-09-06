@@ -74,10 +74,12 @@ mod trace_lock;
 mod process;
 
 #[cfg(feature = "fs")]
-mod fs;
+pub mod fs;
 
 #[cfg(feature = "http")]
 mod http;
+
+mod globals;
 
 pub(crate) trait JSApiSet {
     fn register(&self, runtime: &Runtime, config: &APIConfig) -> Result<()>;
@@ -116,6 +118,8 @@ pub fn add_to_runtime(runtime: &Runtime, config: APIConfig) -> Result<()> {
 
     #[cfg(feature = "http")]
     http::HTTP.register(runtime, &config)?;
+
+    globals::Globals.register(runtime, &config)?;
 
     Ok(())
 }

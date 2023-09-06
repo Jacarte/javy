@@ -4,6 +4,7 @@ use std::path::Path;
 
 use crate::{js::JS, wit};
 
+#[derive(Debug)]
 pub struct Export {
     pub wit: String,
     pub js: String,

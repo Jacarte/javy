@@ -139,6 +139,16 @@ fn test_producers_section_present() {
     common::assert_producers_section_is_correct(&runner.wasm).unwrap();
 }
 
+
+#[test]
+fn test_fs() {
+    let runner = Runner::new("fs.js");
+    let result = runner.exec(&[]);
+    assert!(result.is_ok());
+    // Assert the file is created
+    assert!(std::path::Path::new("test.txt").exists());
+}
+
 #[test]
 fn test_error_handling() {
     let mut runner = Runner::new("error.js");

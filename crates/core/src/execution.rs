@@ -18,6 +18,7 @@ pub fn invoke_function(runtime: &Runtime, fn_module: &str, fn_name: &str) {
     } else {
         format!("import {{ {fn_name} }} from '{fn_module}'; {fn_name}();")
     };
+    // println!("{:?}", context);
     context
         .eval_module("runtime.mjs", &js)
         .and_then(|_| process_event_loop(context))

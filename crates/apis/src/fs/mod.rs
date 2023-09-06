@@ -14,11 +14,10 @@ use javy::{
 };
 use std::collections::HashMap;
 use crate::APIConfig;
-
 use crate::JSApiSet;
 
-pub(super) use config::FSConfig;
-mod config;
+pub use config::FSConfig;
+pub mod config;
 
 pub(super) struct FS;
 
@@ -46,6 +45,20 @@ pub enum FileFlag{
     'wx+': Like 'w+' but fails if the path exists.
 
 */
+
+pub fn get_mut_file(filename: String, flag: FileFlag) -> Result<std::fs::File> {
+    let fd = match flag {
+        FileFlag::Read => std::fs::OpenOptions::new().read(true).open(filename)?,
+        FileFlag::Append => std::fs::OpenOptions::new().append(true).open(filename)?,
+        FileFlag::AppendCreateIfNotExist => std::fs::OpenOptions::new().append(true).create(true).open(filename)?,
+        FileFlag::AppendButFailIfExist => std::fs::OpenOptions::new().append(true).create_new(true).open(filename)?,
+        FileFlag::Write => std::fs::OpenOptions::new().write(true).create(true).open(filename)?,
+        FileFlag::WriteButFailIfExist => std::fs::OpenOptions::new().write(true).create_new(true).open(filename)?,
+        FileFlag::ReadWrite => std::fs::OpenOptions::new().read(true).write(true).open(filename)?,
+        FileFlag::ReadWriteButFailIfExist => std::fs::OpenOptions::new().read(true).write(true).create_new(true).open(filename)?,
+    };
+    Ok(fd)
+}
 
 impl TryFrom<String> for FileFlag {
     type Error = anyhow::Error;
@@ -82,36 +95,30 @@ impl JSApiSet for FS {
         global.set_property(
             "__writeFileSync",
             context.wrap_callback(move |_, _this_arg, args| {
-                let [filename, data, offset, flag, encoding, ..] = args else {
+                let [filename, data, dataoffset, datalength, offset, flag, ..] = args else {
                     anyhow::bail!("Invalid number of parameters");
                 };
 
                 let filename: String = filename.try_into()?;
+                eprintln!("writing to {}", filename);
                 if configcp.can_write(&filename){
-                    let data = data.as_bytes_mut()?;
 
                     let flag: String = flag.try_into()?;
                     let flag: FileFlag = flag.try_into()?;
                     let offset: i32 = offset.try_into()?;
-                    let encoding: String = encoding.try_into()?;
-                    eprintln!("Flag {:?}", flag);
+                    let datalength: usize = datalength.try_into()?;
+                    let dataoffset: usize = dataoffset.try_into()?;
 
                     // match of options is string or object
                     // Get the file
                     // Create if append is false
-                    let mut fd = match flag {
-                        FileFlag::Read => std::fs::OpenOptions::new().read(true).open(filename)?,
-                        FileFlag::Append => std::fs::OpenOptions::new().append(true).open(filename)?,
-                        FileFlag::AppendCreateIfNotExist => std::fs::OpenOptions::new().append(true).create(true).open(filename)?,
-                        FileFlag::AppendButFailIfExist => std::fs::OpenOptions::new().append(true).create_new(true).open(filename)?,
-                        FileFlag::Write => std::fs::OpenOptions::new().write(true).open(filename)?,
-                        FileFlag::WriteButFailIfExist => std::fs::OpenOptions::new().write(true).create_new(true).open(filename)?,
-                        FileFlag::ReadWrite => std::fs::OpenOptions::new().read(true).write(true).open(filename)?,
-                        FileFlag::ReadWriteButFailIfExist => std::fs::OpenOptions::new().read(true).write(true).create_new(true).open(filename)?,
-                    };
+                    let mut fd = get_mut_file(filename, flag)?;
                     // TODO set the writting encoding
                     // Set the offset to write
-                    fd.seek(std::io::SeekFrom::Start(offset as u64))?;
+                    fd.seek(std::io::SeekFrom::Start(offset as u64));
+
+                    let data = data.as_bytes_mut()?;
+                    let data = &mut data[dataoffset..(dataoffset + datalength)];
 
                     let n = fd.write(&data)?;
                     // let n = fd.write(&data)?;
@@ -132,7 +139,7 @@ impl JSApiSet for FS {
         global.set_property(
             "__readFileSync",
             context.wrap_callback(move |_, _this_arg, args| {
-                let [filename, data, offset, flag, encoding, ..] = args else {
+                let [filename, data, dataoffset, datalength, offset, flag, encoding, ..] = args else {
                     anyhow::bail!("Invalid number of parameters");
                 };
 
@@ -146,16 +153,8 @@ impl JSApiSet for FS {
                     // match of options is string or object
                     // Get the file
                     // Create if append is false
-                    let mut fd = match flag {
-                        FileFlag::Read => std::fs::OpenOptions::new().read(true).open(filename)?,
-                        FileFlag::Append => std::fs::OpenOptions::new().append(true).open(filename)?,
-                        FileFlag::AppendCreateIfNotExist => std::fs::OpenOptions::new().append(true).create(true).open(filename)?,
-                        FileFlag::AppendButFailIfExist => std::fs::OpenOptions::new().append(true).create_new(true).open(filename)?,
-                        FileFlag::Write => std::fs::OpenOptions::new().write(true).open(filename)?,
-                        FileFlag::WriteButFailIfExist => std::fs::OpenOptions::new().write(true).create_new(true).open(filename)?,
-                        FileFlag::ReadWrite => std::fs::OpenOptions::new().read(true).write(true).open(filename)?,
-                        FileFlag::ReadWriteButFailIfExist => std::fs::OpenOptions::new().read(true).write(true).create_new(true).open(filename)?,
-                    };
+                    
+                    let mut fd = get_mut_file(filename, flag)?;
                     fd.seek(std::io::SeekFrom::Start(offset as u64))?;
 
                     let n = fd.read(&mut data)?;
@@ -186,29 +185,52 @@ impl JSApiSet for FS {
                     // match of options is string or object
                     // Get the file
                     // Create if append is false
-                    let mut fd = match flag {
-                        FileFlag::Read => std::fs::OpenOptions::new().read(true).open(filename)?,
-                        FileFlag::Append => std::fs::OpenOptions::new().append(true).open(filename)?,
-                        FileFlag::AppendCreateIfNotExist => std::fs::OpenOptions::new().append(true).create(true).open(filename)?,
-                        FileFlag::AppendButFailIfExist => std::fs::OpenOptions::new().append(true).create_new(true).open(filename)?,
-                        FileFlag::Write => std::fs::OpenOptions::new().write(true).open(filename)?,
-                        FileFlag::WriteButFailIfExist => std::fs::OpenOptions::new().write(true).create_new(true).open(filename)?,
-                        FileFlag::ReadWrite => std::fs::OpenOptions::new().read(true).write(true).open(filename)?,
-                        FileFlag::ReadWriteButFailIfExist => std::fs::OpenOptions::new().read(true).write(true).create_new(true).open(filename)?,
-                    };
+                    let mut fd = get_mut_file(filename, flag)?;
                     // Get the size of the file
                     let metadata = fd.metadata()?;
 
                     let size: JSValue = (metadata.len() as i32).try_into()?;
-                    let result  = HashMap::from([("size", size)]);
+                    let ino: JSValue = (0i32).try_into()?;
+                    let result  = HashMap::from([("size", size), ("ino", ino)]);
                     // TODO add the others as needed
                     // result.insert("size", size);
                     Ok(JSValue::from_hashmap(result))
-                } else {                    
+                } else {                   
                     let result  = HashMap::from([("size", -1)]);
                     // Just emit a message, be quiet
                     eprintln!("[WASM] warning {} has no read permissions", filename);
                     Ok(JSValue::from_hashmap(result))
+                }
+            })?,
+        )?;
+
+
+        let configcp = config.fs.clone();
+        global.set_property(
+            "__openwrite",
+            context.wrap_callback(move |_, _this_arg, args| {
+                let [filename, flag, ..] = args else {
+                    anyhow::bail!("Invalid number of parameters");
+                };
+
+                let filename: String = filename.try_into()?;
+
+                if configcp.can_write(&filename){
+                    let flag: String = flag.try_into()?;
+                    let flag: FileFlag = flag.try_into()?;
+                    // match of options is string or object
+                    // Get the file
+                    // Create if append is false
+                    let mut fd = get_mut_file(filename, flag)?;
+                    // truncate
+                    fd.set_len(0)?;
+                    // result.insert("size", size);
+                    Ok(1.into())
+                } else {                   
+                    let result  = HashMap::from([("size", -1)]);
+                    // Just emit a message, be quiet
+                    eprintln!("[WASM] warning {} has no read permissions", filename);
+                    Ok(0.into())
                 }
             })?,
         )?;

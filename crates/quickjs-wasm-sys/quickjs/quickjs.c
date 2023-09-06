@@ -36466,8 +36466,8 @@ static JSValue js_object_create(JSContext *ctx, JSValueConst this_val,
     JSValue obj;
 
     proto = argv[0];
-    if (!JS_IsObject(proto) && !JS_IsNull(proto))
-        return JS_ThrowTypeError(ctx, "not a prototype");
+    //if (!JS_IsObject(proto) && !JS_IsNull(proto))
+    //    return JS_ThrowTypeError(ctx, "not a prototype");
     obj = JS_NewObjectProto(ctx, proto);
     if (JS_IsException(obj))
         return JS_EXCEPTION;

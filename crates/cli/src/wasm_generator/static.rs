@@ -7,6 +7,9 @@ use wasi_common::{pipe::ReadPipe, WasiCtx};
 use wasmtime::Linker;
 use wasmtime_wasi::WasiCtxBuilder;
 use wizer::Wizer;
+use std::fs::File;
+use std::path::PathBuf;
+use std::fs;
 
 use crate::{exports::Export, js::JS};
 
@@ -14,11 +17,25 @@ use super::transform::{self, SourceCodeSection};
 
 static mut WASI: OnceLock<WasiCtx> = OnceLock::new();
 
-pub fn generate(js: &JS, exports: Vec<Export>) -> Result<Vec<u8>> {
+
+pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>) -> Result<Vec<u8>> {
     let wasm = include_bytes!(concat!(env!("OUT_DIR"), "/engine.wasm"));
+    let permissions = match fpermissions {
+        Some(fpermissions) => {
+            // read the file content
+            let contents = fs::read_to_string(fpermissions)?;
+            contents
+        },
+        None => String::from("")
+    };
+
 
     let wasi = WasiCtxBuilder::new()
-        .stdin(Box::new(ReadPipe::from(js.as_bytes())))
+        .stdin(Box::new(ReadPipe::from(js.as_bytes())))   
+        // To get the filer permissions     
+        .envs(&[
+            ("FILE_PERMISSIONS".into(), permissions),
+        ])?
         .inherit_stdout()
         .inherit_stderr()
         .build();
@@ -60,6 +77,7 @@ pub fn generate(js: &JS, exports: Vec<Export>) -> Result<Vec<u8>> {
     let realloc_export = realloc.id();
     let invoke_export = invoke.id();
 
+    eprintln!("Exports {:?}", exports);
     if !exports.is_empty() {
         let ExportItem::Function(realloc_fn) = realloc.item else { unreachable!() };
         let ExportItem::Function(invoke_fn) = invoke.item else { unreachable!() };
@@ -119,7 +137,7 @@ fn export_exported_js_functions(
             .i32_const(0) // offset into data segment
             .i32_const(js_export_len) // size to copy
             .memory_init(memory, fn_name_data) // copy fn name into allocated memory
-            .data_drop(fn_name_data)
+            //.data_drop(fn_name_data)
             .local_get(ptr_local)
             .i32_const(js_export_len)
             .call(invoke_fn);

@@ -11,5 +11,8 @@ pub struct APIConfig {
     pub(crate) console: crate::console::ConsoleConfig,
 
     #[cfg(feature = "fs")]
-    pub(crate) fs: crate::fs::FSConfig,
+    pub fs: crate::fs::FSConfig,
+
+    #[cfg(feature = "http")]
+    pub http: crate::http::HTTPConfig,
 }

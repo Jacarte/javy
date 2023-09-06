@@ -16,8 +16,11 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = { workspace = true }
 javy = { workspace = true }
-javy-apis = { path = "../apis", features = ["console", "text_encoding", "random", "stream_io", "node_red", "process"] }
+javy-apis = { path = "../apis", features = ["console", "text_encoding", "random", "stream_io", "process", "fs", "http", "node_red"] }
 once_cell = { workspace = true }
+serde = "1.0.183"
+serde_yaml = "0.9.25"
 
 [features]
+default = ['experimental_event_loop']
 experimental_event_loop = []

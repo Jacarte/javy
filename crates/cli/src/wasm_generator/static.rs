@@ -72,31 +72,40 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
 
     let mut module = transform::module_config().parse(&wasm)?;
 
-    let (realloc, invoke, memory) = {
+    let (realloc, free, invoke, memory) = {
         let mut exports = HashMap::new();
         for export in module.exports.iter() {
             exports.insert(export.name.as_str(), export);
         }
         (
             *exports.get("canonical_abi_realloc").unwrap(),
+            *exports.get("canonical_abi_free").unwrap(),
             *exports.get("javy.invoke").unwrap(),
             *exports.get("memory").unwrap(),
         )
     };
 
     let realloc_export = realloc.id();
+    let free_export = free.id();
     let invoke_export = invoke.id();
 
     eprintln!("Exports {:?}", exports);
     if !exports.is_empty() {
-        let ExportItem::Function(realloc_fn) = realloc.item else { unreachable!() };
-        let ExportItem::Function(invoke_fn) = invoke.item else { unreachable!() };
-        let ExportItem::Memory(memory) = memory.item else { unreachable!() };
+        let ExportItem::Function(realloc_fn) = realloc.item else {
+            unreachable!()
+        };
+        let ExportItem::Function(invoke_fn) = invoke.item else {
+            unreachable!()
+        };
+        let ExportItem::Memory(memory) = memory.item else {
+            unreachable!()
+        };
         export_exported_js_functions(&mut module, realloc_fn, invoke_fn, memory, exports);
     }
 
     // We no longer need these exports so remove them.
     module.exports.delete(realloc_export);
+    module.exports.delete(free_export);
     module.exports.delete(invoke_export);
 
     let wasm = module.emit_wasm();

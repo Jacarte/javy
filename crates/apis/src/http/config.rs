@@ -9,6 +9,7 @@ pub struct HttpAccessRule {
     endpoint_pattern_str: String,
     domain_pattern: Regex,
     endpoint_pattern: Regex,
+    method_pattern: Regex,
 }
 
 impl Eq for HttpAccessRule {}
@@ -31,8 +32,9 @@ impl Hash  for HttpAccessRule {
 
 impl HttpAccessRule {
     pub fn new(method: &str, domain_pattern: &str, endpoint_pattern: &str) -> Option<Self> {
-        let domain_regex = Regex::new(domain_pattern).ok()?;
-        let endpoint_regex = Regex::new(endpoint_pattern).ok()?;
+        let domain_regex = Regex::new(domain_pattern).unwrap();
+        let endpoint_regex = Regex::new(endpoint_pattern).unwrap();
+        let method_regex = Regex::new(method).unwrap();
         
         Some(HttpAccessRule {
             method: method.to_uppercase(),
@@ -40,6 +42,7 @@ impl HttpAccessRule {
             endpoint_pattern_str: endpoint_pattern.to_string(),
             domain_pattern: domain_regex,
             endpoint_pattern: endpoint_regex,
+            method_pattern: method_regex,
         })
     }
 }
@@ -81,7 +84,7 @@ impl HTTPConfig {
         // make method uppercase
         let method = method.to_uppercase();
         for rule in &self.allowed_rules {
-            if rule.method == method.to_uppercase() &&
+            if rule.method_pattern.is_match(&method) &&
                rule.domain_pattern.is_match(domain) &&
                rule.endpoint_pattern.is_match(endpoint) {
                 return true;

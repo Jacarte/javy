@@ -25,10 +25,10 @@ test-quickjs-wasm-rs:
 	cargo wasi test --package=quickjs-wasm-rs -- --nocapture
 
 test-javy:
-	cargo wasi test --package=javy --features json,messagepack -- --nocapture
+	cargo wasi test --package=javy --features json,messagepack,fs -- --nocapture
 
 test-apis:
-	cargo hack wasi test --package=javy-apis --each-feature -- --nocapture
+	CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=." cargo hack wasi test --package=javy-apis --each-feature -- --nocapture 
 
 test-core:
 	cargo wasi test --package=javy-core -- --nocapture
@@ -84,3 +84,9 @@ clean-cargo:
 
 clean-wasi-sdk:
 	rm -r crates/quickjs-wasm-sys/wasi-sdk 2> /dev/null || true
+
+test-extra: cli
+	 ./target/release/javy compile tests/fs.js --file-permissions ./tests/permissions.yaml --wit tests/permissions.wit -n "node-red" -o fs.wasm
+	wasmtime run --dir . fs.wasm
+	 ./target/release/javy compile tests/http.js --wit tests/permissions.wit -n "node-red" -o http.wasm
+	wasmtime run --dir . http.wasm

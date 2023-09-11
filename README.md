@@ -15,6 +15,8 @@
 
 ## About this repo
 
+**Notes for Wasm-RED** We add: multiple JavaScripts initializations, (no more mem delete after calling), fs support with a permission layer, no OneCell usage for the runtime, http support with a permission layer, node-red communication API where the compiled binary expect for several callbacks in the env module.
+
 **Introduction**: Run your JavaScript on WebAssembly. Javy takes your JavaScript code, and executes it in a WebAssembly embedded JavaScript runtime. Javy can create _very_ small Wasm modules in the 1 to 16 KB range with use of dynamic linking. The default static linking produces modules that are at least 869 KB in size.
 
 **We add node-red basic library: msg, send and data**

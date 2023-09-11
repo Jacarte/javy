@@ -77,7 +77,7 @@ mod process;
 pub mod fs;
 
 #[cfg(feature = "http")]
-mod http;
+pub mod http;
 
 mod globals;
 

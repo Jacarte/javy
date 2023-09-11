@@ -38,6 +38,28 @@ pub extern "C" fn init() {
             runtime::new_runtime().unwrap()
         }
     };
+
+    // Read the http permissions from an env var
+    let http_permissions = std::env::var("HTTP_PERMISSIONS");
+    let runtime = match http_permissions {
+        Ok(env) => {
+            //eprintln!("Reading permissions from env var: {}", env);
+            // parse as yaml
+            let http_permissions = serde_yaml::from_str(&env);
+            match http_permissions {
+                Ok(http_permissions) => runtime::new_runtime_with_http_permissions(http_permissions).unwrap(),
+                Err(e) => {
+                    eprintln!("Invalid permissions http: {}", e);
+                    runtime::new_runtime().unwrap()
+                }
+            }
+        
+        }
+        Err(e) => {
+            eprintln!("Could not read file permissions from env var: {}", e);
+            runtime::new_runtime().unwrap()
+        }
+    };
    
     let mut contents = String::new();
     io::stdin().read_to_string(&mut contents).unwrap();

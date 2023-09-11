@@ -18,12 +18,21 @@ use super::transform::{self, SourceCodeSection};
 static mut WASI: OnceLock<WasiCtx> = OnceLock::new();
 
 
-pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>) -> Result<Vec<u8>> {
+pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, http_permissions: &Option<PathBuf>) -> Result<Vec<u8>> {
     let wasm = include_bytes!(concat!(env!("OUT_DIR"), "/engine.wasm"));
     let permissions = match fpermissions {
         Some(fpermissions) => {
             // read the file content
             let contents = fs::read_to_string(fpermissions)?;
+            contents
+        },
+        None => String::from("")
+    };
+
+    let http_permissions = match http_permissions {
+        Some(http_permissions) => {
+            // read the file content
+            let contents = fs::read_to_string(http_permissions)?;
             contents
         },
         None => String::from("")
@@ -35,6 +44,7 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>) -
         // To get the filer permissions     
         .envs(&[
             ("FILE_PERMISSIONS".into(), permissions),
+            ("HTTP_PERMISSIONS".into(), http_permissions)
         ])?
         .inherit_stdout()
         .inherit_stderr()

@@ -6,7 +6,7 @@ use javy::Runtime;
 use crate::{APIConfig, JSApiSet};
 
 pub(super) use config::HTTPConfig;
-mod config;
+pub mod config;
 
 pub(super) struct HTTP;
 
@@ -31,7 +31,21 @@ impl JSApiSet for HTTP {
                     anyhow::bail!("Invalid number of parameters");
                 };
 
-                todo!("Need to be implemented");
+                // Get the domain and endpoint
+                let endpoint = endpoint.to_string();
+                let method = method.to_string();
+
+                // Check of the url and method is allowed
+                if configcp.can_access(&method, &endpoint) {
+
+                    // Create a request client
+                    let mut client = reqwest::Client::new();
+
+
+                    todo!("Need to be implemented");
+                } else {
+                    anyhow::bail!("Access denied");
+                }
                 Ok(0.into())
             })?,
         )?;

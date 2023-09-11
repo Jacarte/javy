@@ -46,7 +46,7 @@ impl HttpAccessRule {
 
 #[derive(Debug, Clone)]
 pub struct HTTPConfig {
-    allowed_rules: HashSet<HttpAccessRule>,
+    pub allowed_rules: HashSet<HttpAccessRule>,
 }
 
 impl Default for HTTPConfig {
@@ -73,7 +73,13 @@ impl HTTPConfig {
         }
     }
 
-    pub fn can_access(&self, method: &str, domain: &str, endpoint: &str) -> bool {
+    pub fn can_access(&self, method: &str,endpoint: &str) -> bool {
+        // Separate endpoint and domain
+        let mut endpoint_parts = endpoint.splitn(2, "/");
+        let domain = endpoint_parts.next().unwrap_or("");
+        let endpoint = endpoint_parts.next().unwrap_or("");
+        // make method uppercase
+        let method = method.to_uppercase();
         for rule in &self.allowed_rules {
             if rule.method == method.to_uppercase() &&
                rule.domain_pattern.is_match(domain) &&
@@ -94,9 +100,9 @@ mod tests{
 
         permissions.allow_access("GET", r"\w+\.example\.com", r"/api/.*");
 
-        assert_eq!(permissions.can_access("GET", "sub.example.com", "/api/data"), true);
-        assert_eq!(permissions.can_access("POST", "sub.example.com", "/api/data"), false);
-        assert_eq!(permissions.can_access("GET", "notexample.com", "/api/data"), false);
-        assert_eq!(permissions.can_access("GET", "sub.example.com", "/notapi/data"), false);
+        assert_eq!(permissions.can_access("GET", "sub.example.com/api/data"), true);
+        assert_eq!(permissions.can_access("POST", "sub.example.com/api/data"), false);
+        assert_eq!(permissions.can_access("GET", "notexample.com/api/data"), false);
+        assert_eq!(permissions.can_access("GET", "sub.example.com/notapi/data"), false);
     }
 }

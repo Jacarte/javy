@@ -36,6 +36,12 @@ pub struct CompileCommandOpts {
     /// Only supports function exports with no arguments and no return values.
     pub fpermissions: Option<PathBuf>,
 
+
+    #[structopt(long = "http-permissions")]
+    /// Optional path to WIT file describing exported functions and fs/http permissions
+    /// Only supports function exports with no arguments and no return values.
+    pub httppermissions: Option<PathBuf>,
+
     #[structopt(short = "n")]
     /// Optional WIT world name for WIT file. Must be specified if WIT is file path is specified.
     pub wit_world: Option<String>,

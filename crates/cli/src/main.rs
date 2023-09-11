@@ -31,7 +31,7 @@ fn main() -> Result<()> {
             let wasm = if opts.dynamic {
                 dynamic_generator::generate(&js, exports)?
             } else {
-                static_generator::generate(&js, exports, &opts.fpermissions)?
+                static_generator::generate(&js, exports, &opts.fpermissions, &opts.httppermissions)?
             };
             fs::write(&opts.output, wasm)?;
             Ok(())

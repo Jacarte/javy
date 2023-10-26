@@ -5,8 +5,8 @@
 
 ```yaml
 rules:
-      # in regex
-    - domain_pattern: google\.com
+    # The regex needs to be escaped
+    - domain_pattern: "(www\\.)?google\\.com"
       endpoint_pattern: ".*"
       method: "GET|POST"    
 ```

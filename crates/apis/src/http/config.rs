@@ -11,6 +11,7 @@ pub struct HttpAccessRule {
     endpoint_pattern: Regex,
     method_pattern: Regex,
 }
+use url::Url;
 
 impl Eq for HttpAccessRule {}
 
@@ -78,16 +79,32 @@ impl HTTPConfig {
 
     pub fn can_access(&self, method: &str,endpoint: &str) -> bool {
         // Separate endpoint and domain
-        let mut endpoint_parts = endpoint.splitn(2, "/");
-        let domain = endpoint_parts.next().unwrap_or("");
-        let endpoint = endpoint_parts.next().unwrap_or("");
+        // TODO: This is not a good way to do this
+
+        let url = Url::parse(&endpoint).unwrap();
+        eprintln!("Domain: {}, Endpoint: {}", url.domain().expect("Cannot parse domain"), url.path());
+        let domain = url.domain().expect("Cannot parse domain");
+        let endpoint = url.path();
         // make method uppercase
         let method = method.to_uppercase();
         for rule in &self.allowed_rules {
-            if rule.method_pattern.is_match(&method) &&
-               rule.domain_pattern.is_match(domain) &&
-               rule.endpoint_pattern.is_match(endpoint) {
-                return true;
+            if rule.method_pattern.is_match(&method) {
+                if rule.domain_pattern.is_match(domain){
+
+                
+                    if rule.endpoint_pattern.is_match(endpoint) {
+                        return true;
+                    } else {
+
+                        eprintln!("Invalid endpoint {}", domain);
+                    }
+                    
+                } else {
+
+                    eprintln!("Invalid domain {}", domain);
+                }
+            } else {
+                eprintln!("Invalid method {}", method);
             }
         }
         false

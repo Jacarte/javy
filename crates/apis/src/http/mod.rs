@@ -7,6 +7,9 @@ use crate::{APIConfig, JSApiSet};
 
 pub(super) use config::HTTPConfig;
 pub mod config;
+use std::collections::HashMap;
+use reqwest::blocking::Client;
+
 
 pub(super) struct HTTP;
 
@@ -38,11 +41,10 @@ impl JSApiSet for HTTP {
                 // Check of the url and method is allowed
                 if configcp.can_access(&method, &endpoint) {
 
-                    // Create a request client
-                    let mut client = reqwest::Client::new();
+                    let client = Client::new();
+                    let resp = client.get("http://httpbin.org/").send()?; 
 
 
-                    todo!("Need to be implemented");
                 } else {
                     anyhow::bail!("Access denied");
                 }

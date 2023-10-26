@@ -10,12 +10,13 @@ use wizer::Wizer;
 use std::fs::File;
 use std::path::PathBuf;
 use std::fs;
+use wasmtime_wasi::snapshots::preview_1::add_wasi_snapshot_preview1_to_linker;
 
 use crate::{exports::Export, js::JS};
-
+use std::{cell::OnceCell};
 use super::transform::{self, SourceCodeSection};
 
-static mut WASI: OnceLock<WasiCtx> = OnceLock::new();
+static mut WASI: OnceCell<WasiCtx> = OnceCell::new();
 
 
 pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, http_permissions: &Option<PathBuf>) -> Result<Vec<u8>> {
@@ -61,7 +62,11 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
     let wasm = Wizer::new()
         .make_linker(Some(Rc::new(|engine| {
             let mut linker = Linker::new(engine);
-            wasmtime_wasi::add_to_linker(&mut linker, |_ctx: &mut Option<WasiCtx>| {
+           /*wasmtime_wasi::add_to_linker(&mut linker, |_ctx: &mut Option<WasiCtx>| {
+                unsafe { WASI.get_mut() }.unwrap()
+            })?;*/
+            // To have others that we need
+            add_wasi_snapshot_preview1_to_linker(&mut linker, |_ctx: &mut Option<WasiCtx>| {
                 unsafe { WASI.get_mut() }.unwrap()
             })?;
             Ok(linker)

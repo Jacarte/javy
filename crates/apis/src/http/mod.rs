@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::io::{Read, Write};
 
 use javy::Runtime;
 
@@ -7,8 +6,6 @@ use crate::{APIConfig, JSApiSet};
 
 pub(super) use config::HTTPConfig;
 pub mod config;
-use std::collections::HashMap;
-use reqwest::blocking::Client;
 
 
 pub(super) struct HTTP;

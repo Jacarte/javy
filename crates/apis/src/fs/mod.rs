@@ -10,7 +10,7 @@ use std::io::{Read, Write};
 use std::io::Seek;
 use javy::{
     Runtime, 
-    quickjs::{JSContextRef, JSError, JSValue, JSValueRef},
+    quickjs::JSValue,
 };
 use std::collections::HashMap;
 use crate::APIConfig;

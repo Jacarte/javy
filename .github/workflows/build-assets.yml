@@ -51,34 +51,34 @@ jobs:
       - name: Wizen and archive wizened quickjs_provider
         run: |
           wizer target/wasm32-wasi/release/javy_quickjs_provider.wasm --allow-wasi --wasm-bulk-memory true -o target/wasm32-wasi/release/javy_quickjs_provider_wizened.wasm
-          gzip -k -f target/wasm32-wasi/release/javy_quickjs_provider_wizened.wasm && mv target/wasm32-wasi/release/javy_quickjs_provider_wizened.wasm.gz javy-quickjs_provider.wasm.gz
+          mv target/wasm32-wasi/release/javy_quickjs_provider_wizened.wasm javy-quickjs_provider.wasm
 
       - name: Upload archived quickjs_provider to artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: javy-quickjs_provider.wasm.gz
-          path: javy-quickjs_provider.wasm.gz
+          name: javy-quickjs_provider.wasm
+          path: javy-quickjs_provider.wasm
 
       - name: Upload archived quickjs_provider to release
         if: github.event_name == 'release'
         env:
           GITHUB_TOKEN: ${{ secrets.GH }}
-        run: gh release upload ${{ github.event.release.tag_name }} javy-quickjs_provider.wasm.gz
+        run: gh release upload ${{ github.event.release.tag_name }} javy-quickjs_provider.wasm
 
       - name: Generate archived quickjs_provider hash
-        run: shasum -a 256 javy-quickjs_provider.wasm.gz | awk '{ print $1 }' > javy-quickjs_provider.wasm.gz.sha256
+        run: shasum -a 256 javy-quickjs_provider.wasm | awk '{ print $1 }' > javy-quickjs_provider.wasm.sha256
 
       - name: Upload asset hash to artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: javy-quickjs_provider.wasm.gz.sha256
-          path: javy-quickjs_provider.wasm.gz.sha256
+          name: javy-quickjs_provider.wasm.sha256
+          path: javy-quickjs_provider.wasm.sha256
 
       - name: Upload asset hash to release
         if: github.event_name == 'release'
         env:
           GITHUB_TOKEN: ${{ secrets.GH }}
-        run: gh release upload ${{ github.event.release.tag_name }} javy-quickjs_provider.wasm.gz.sha256
+        run: gh release upload ${{ github.event.release.tag_name }} javy-quickjs_provider.wasm.sha256
 
   compile_cli:
     name: compile_cli-${{ matrix.name }}
@@ -146,7 +146,7 @@ jobs:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
 
       - name: Archive assets
-        run:  mv ${{ matrix.path }}.gz ${{ matrix.asset_name }}
+        run:  mv ${{ matrix.path }} ${{ matrix.asset_name }}
 
       - name: Upload assets to artifacts
         uses: actions/upload-artifact@v3
@@ -161,7 +161,7 @@ jobs:
         run: gh release upload ${{ github.event.release.tag_name }} ${{ matrix.asset_name }}
 
       - name: Generate asset hash
-        run: ${{ matrix.shasum_cmd }} ${{ matrix.asset_name }} | awk '{ print $1 }' > ${{ matrix.asset_name }}.gz.sha256
+        run: ${{ matrix.shasum_cmd }} ${{ matrix.asset_name }} | awk '{ print $1 }' > ${{ matrix.asset_name }}.sha256
 
       - name: Upload asset hash to artifacts
         uses: actions/upload-artifact@v3

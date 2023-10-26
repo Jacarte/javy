@@ -37,10 +37,8 @@ impl JSApiSet for HTTP {
 
                 // Check of the url and method is allowed
                 if configcp.can_access(&method, &endpoint) {
-
-                    let client = Client::new();
-                    let resp = client.get("http://httpbin.org/").send()?; 
-
+                    
+                    panic!("Not implemented")
 
                 } else {
                     anyhow::bail!("Access denied");

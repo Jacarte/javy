@@ -146,31 +146,31 @@ jobs:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
 
       - name: Archive assets
-        run: gzip -k -f ${{ matrix.path }} && mv ${{ matrix.path }}.gz ${{ matrix.asset_name }}.gz
+        run:  mv ${{ matrix.path }}.gz ${{ matrix.asset_name }}
 
       - name: Upload assets to artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.asset_name }}.gz
-          path: ${{ matrix.asset_name }}.gz
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
 
       - name: Upload assets to release
         if: github.event_name == 'release'
         env:
           GITHUB_TOKEN: ${{ secrets.GH }}
-        run: gh release upload ${{ github.event.release.tag_name }} ${{ matrix.asset_name }}.gz
+        run: gh release upload ${{ github.event.release.tag_name }} ${{ matrix.asset_name }}
 
       - name: Generate asset hash
-        run: ${{ matrix.shasum_cmd }} ${{ matrix.asset_name }}.gz | awk '{ print $1 }' > ${{ matrix.asset_name }}.gz.sha256
+        run: ${{ matrix.shasum_cmd }} ${{ matrix.asset_name }} | awk '{ print $1 }' > ${{ matrix.asset_name }}.gz.sha256
 
       - name: Upload asset hash to artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.asset_name }}.gz.sha256
-          path: ${{ matrix.asset_name }}.gz.sha256
+          name: ${{ matrix.asset_name }}.sha256
+          path: ${{ matrix.asset_name }}.sha256
 
       - name: Upload asset hash to release
         if: github.event_name == 'release'
         env:
           GITHUB_TOKEN: ${{ secrets.GH }}
-        run: gh release upload ${{ github.event.release.tag_name }} ${{ matrix.asset_name }}.gz.sha256
+        run: gh release upload ${{ github.event.release.tag_name }} ${{ matrix.asset_name }}.sha256

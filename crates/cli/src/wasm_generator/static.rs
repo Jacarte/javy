@@ -113,12 +113,15 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
     module.exports.delete(free_export);
     module.exports.delete(invoke_export);
 
+    // TODO, delete imports based on input
+    // module.imports.delete(send...)
+
     let wasm = module.emit_wasm();
 
     let codegen_cfg = CodegenConfig {
         optimization_level: 3, // Aggressively optimize for speed.
         shrink_level: 0,       // Don't optimize for size at the expense of performance.
-        debug_info: false,
+        debug_info: true,
     };
 
     let mut module = Module::read(&wasm)
@@ -129,9 +132,10 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
         .map_err(|_| anyhow!("Running wasm-opt optimization passes failed"))?;
     let wasm = module.write();
 
+    // This increases the size of the binary, which is not needed now
     let mut module = transform::module_config().parse(&wasm)?;
-    module.customs.add(SourceCodeSection::new(js)?);
-    transform::add_producers_section(&mut module.producers);
+    // module.customs.add(SourceCodeSection::new(js)?);
+    // transform::add_producers_section(&mut module.producers);
     Ok(module.emit_wasm())
 }
 

@@ -49,34 +49,34 @@ use anyhow::Result;
 use javy::Runtime;
 
 pub use api_config::APIConfig;
-#[cfg(feature = "console")]
+//#[cfg(feature = "console")]
 pub use console::LogStream;
 pub use runtime_ext::RuntimeExt;
 
 mod api_config;
-#[cfg(feature = "console")]
+// #[cfg(feature = "console")]
 mod console;
-#[cfg(feature = "random")]
+// #[cfg(feature = "random")]
 mod random;
 mod runtime_ext;
-#[cfg(feature = "stream_io")]
+// #[cfg(feature = "stream_io")]
 mod stream_io;
-#[cfg(feature = "text_encoding")]
+// #[cfg(feature = "text_encoding")]
 mod text_encoding;
 
-#[cfg(feature = "node_red")]
+// #[cfg(feature = "node_red")]
 mod node_red;
 
-#[cfg(feature = "trace_lock")]
+// #[cfg(feature = "trace_lock")]
 mod trace_lock;
 
-#[cfg(feature = "process")]
+// #[cfg(feature = "process")]
 mod process;
 
-#[cfg(feature = "fs")]
+// #[cfg(feature = "fs")]
 pub mod fs;
 
-#[cfg(feature = "http")]
+// #[cfg(feature = "http")]
 pub mod http;
 
 mod globals;
@@ -97,26 +97,26 @@ pub(crate) trait JSApiSet {
 /// # Ok::<(), Error>(())
 /// ```
 pub fn add_to_runtime(runtime: &Runtime, config: APIConfig) -> Result<()> {
-    #[cfg(feature = "console")]
+    //#[cfg(feature = "console")]
     console::Console::new().register(runtime, &config)?;
-    #[cfg(feature = "random")]
+    //#[cfg(feature = "random")]
     random::Random.register(runtime, &config)?;
-    #[cfg(feature = "stream_io")]
+    //#[cfg(feature = "stream_io")]
     stream_io::StreamIO.register(runtime, &config)?;
 
-    #[cfg(feature = "node_red")]
+    //#[cfg(feature = "node_red")]
     node_red::NodeRed.register(runtime, &config)?;
 
-    #[cfg(feature = "trace_lock")]
+    //#[cfg(feature = "trace_lock")]
     trace_lock::TraceLock.register(runtime, &config)?;
 
-    #[cfg(feature = "text_encoding")]
+    //#[cfg(feature = "text_encoding")]
     text_encoding::TextEncoding.register(runtime, &config)?;
 
-    #[cfg(feature = "fs")]
+    //#[cfg(feature = "fs")]
     fs::FS.register(runtime, &config)?;
 
-    #[cfg(feature = "http")]
+    //#[cfg(feature = "http")]
     http::HTTP.register(runtime, &config)?;
 
     globals::Globals.register(runtime, &config)?;

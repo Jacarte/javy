@@ -32,7 +32,7 @@ pub(crate) fn new_runtime() -> Result<Runtime> {
     let mut api_config = APIConfig::default();
     api_config.log_stream(LogStream::StdErr);
     
-    Runtime::new_with_apis(Config::default(), api_config)
+    RuntimeExt::new_with_apis(Config::default(), api_config)
 }
 
 
@@ -60,7 +60,7 @@ pub(crate) fn new_runtime_with_file_permissions(
     
     api_config.fs = fsconfig;
     
-    Runtime::new_with_apis(Config::default(), api_config)
+    RuntimeExt::new_with_apis(Config::default(), api_config)
 }
 
 
@@ -86,5 +86,5 @@ pub(crate) fn new_runtime_with_http_permissions(
         allowed_rules: HashSet::from_iter(r)
     };
     
-    Runtime::new_with_apis(Config::default(), api_config)
+    RuntimeExt::new_with_apis(Config::default(), api_config)
 }

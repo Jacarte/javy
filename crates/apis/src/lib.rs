@@ -67,7 +67,7 @@ mod text_encoding;
 // #[cfg(feature = "node_red")]
 mod node_red;
 
-// #[cfg(feature = "trace_lock")]
+#[cfg(feature = "trace_lock")]
 mod trace_lock;
 
 // #[cfg(feature = "process")]
@@ -107,7 +107,7 @@ pub fn add_to_runtime(runtime: &Runtime, config: APIConfig) -> Result<()> {
     //#[cfg(feature = "node_red")]
     node_red::NodeRed.register(runtime, &config)?;
 
-    //#[cfg(feature = "trace_lock")]
+    #[cfg(feature = "trace_lock")]
     trace_lock::TraceLock.register(runtime, &config)?;
 
     //#[cfg(feature = "text_encoding")]

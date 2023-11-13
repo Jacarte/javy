@@ -15,11 +15,11 @@ use wasmtime_wasi::snapshots::preview_1::add_wasi_snapshot_preview1_to_linker;
 use crate::{exports::Export, js::JS};
 use std::{cell::OnceCell};
 use super::transform::{self, SourceCodeSection};
-
+use crate::commands::CompileCommandOpts;
 static mut WASI: OnceCell<WasiCtx> = OnceCell::new();
 
 
-pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, http_permissions: &Option<PathBuf>) -> Result<Vec<u8>> {
+pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, http_permissions: &Option<PathBuf>, opts: &CompileCommandOpts) -> Result<Vec<u8>> {
     let wasm = include_bytes!(concat!(env!("OUT_DIR"), "/engine.wasm"));
     let permissions = match fpermissions {
         Some(fpermissions) => {
@@ -90,11 +90,95 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
         )
     };
 
+    let (node_red_send_msg, node_red_done, node_red_warn, node_red_error, node_red_emit, node_red_pop, node_red_node, node_red_msg, node_red_register, node_red_result, fs ) = {
+        let mut imports = HashMap::new();
+        for import in module.imports.iter() {
+            imports.insert(format!("{}:{}", import.module, import.name), import.id());
+        }
+        (
+            vec![*imports.get("env:node_red_send").unwrap()],
+            vec![*imports.get("env:node_red_done").unwrap()],
+            vec![*imports.get("env:node_red_warn").unwrap()],
+            vec![*imports.get("env:node_red_error").unwrap()],
+            vec![*imports.get("env:node_emit").unwrap()],
+            vec![*imports.get("env:node_red_pop").unwrap()],
+            vec![*imports.get("env:node_red_node").unwrap(), *imports.get("env:node_red_node_size").unwrap()],
+            vec![*imports.get("env:node_red_msg").unwrap(), *imports.get("env:node_red_msg_size").unwrap()],
+            vec![*imports.get("env:node_red_register").unwrap()],
+            vec![*imports.get("env:node_red_result").unwrap()],
+
+            // Some WASI functions
+
+            vec![*imports.get("wasi_snapshot_preview1:fd_read").unwrap(), *imports.get("wasi_snapshot_preview1:fd_seek").unwrap(), *imports.get("wasi_snapshot_preview1:fd_write").unwrap()],
+        )
+    };
+
+    if opts.remove_nred_send {
+        for imp in node_red_send_msg {
+            module.imports.delete(imp)
+        }
+    }
+
+    if opts.remove_nred_done {
+        for imp in node_red_done {
+            module.imports.delete(imp)
+        }
+    }
+
+    if opts.remove_nred_warn {
+        for imp in node_red_warn {
+            module.imports.delete(imp)
+        }
+    }
+    if opts.remove_nred_error {
+        for imp in node_red_error {
+            module.imports.delete(imp)
+        }
+    }
+    if opts.remove_nred_emit {
+        for imp in node_red_emit {
+            module.imports.delete(imp)
+        }
+    }
+    if opts.remove_nred_pop {
+        for imp in node_red_pop {
+            module.imports.delete(imp)
+        }
+    }
+    if opts.remove_nred_node {
+        for imp in node_red_node {
+            module.imports.delete(imp)
+        }
+    }
+    if opts.remove_nred_msg {
+        for imp in node_red_msg {
+            module.imports.delete(imp)
+        }
+    }
+    if opts.remove_nred_register {
+        for imp in node_red_register {
+            module.imports.delete(imp)
+        }
+    }
+
+    if opts.remove_nred_result {
+        for imp in node_red_result {
+            module.imports.delete(imp)
+        }
+    }
+
+    if opts.remove_fs {
+        for imp in fs {
+            module.imports.delete(imp)
+        }
+    }
+
+
     let realloc_export = realloc.id();
     let free_export = free.id();
     let invoke_export = invoke.id();
 
-    eprintln!("Exports {:?}", exports);
+    //eprintln!("Exports {:?}", exports);
     if !exports.is_empty() {
         let ExportItem::Function(realloc_fn) = realloc.item else {
             unreachable!()
@@ -137,6 +221,7 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
     // module.customs.add(SourceCodeSection::new(js)?);
     // transform::add_producers_section(&mut module.producers);
     Ok(module.emit_wasm())
+    //Ok(wasm)
 }
 
 fn export_exported_js_functions(

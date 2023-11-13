@@ -15,7 +15,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = { workspace = true }
-javy-apis = { path = "../apis", features = ["console", "text_encoding", "random", "stream_io", "process", "fs", "http"] }
+javy-apis = { path = "../apis", features = ["console", "text_encoding", "random", "stream_io", "process", "fs", "node_red"] }
 javy = { workspace = true, features = ["export_alloc_fns"] }
 once_cell = { workspace = true }
 serde = "1.0.183"

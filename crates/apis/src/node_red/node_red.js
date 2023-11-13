@@ -44,6 +44,7 @@
     },
     node() {
       const buffer = new Uint8Array(__node_node_length());
+      console.log("[WASM] buffer size", buffer.length);
       __node_node(buffer.buffer, buffer.byteOffset, buffer.byteLength);
       let final_decoder = new TextDecoder().decode(buffer)
       return JSON.parse(final_decoder);

@@ -1,7 +1,6 @@
 use anyhow::Result;
 use javy::{Config, Runtime};
 use javy_apis::{APIConfig, LogStream, RuntimeExt};
-use javy_apis::http::config::HTTPConfig;
 use std::collections::HashSet;
 
 #[derive(serde::Deserialize, Debug)]
@@ -75,16 +74,16 @@ pub(crate) fn new_runtime_with_http_permissions(
     eprintln!("HTTP permissions: {:?}", permissions);
     
 
-    let mut r = vec![];
-    for rule in permissions.rules {
+    //let mut r = vec![];
+    /*for rule in permissions.rules {
         let httprule = javy_apis::http::config::HttpAccessRule::new(&rule.method, &rule.domain_pattern, &rule.endpoint_pattern);
         println!("{:?}", httprule);
 
         r.push(httprule.unwrap());
-    }
-    api_config.http = HTTPConfig {
+    }*/
+    /*api_config.http = HTTPConfig {
         allowed_rules: HashSet::from_iter(r)
-    };
+    };*/
     
     Runtime::new_with_apis(Config::default(), api_config)
 }

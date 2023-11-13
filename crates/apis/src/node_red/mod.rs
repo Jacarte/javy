@@ -10,48 +10,62 @@ pub(super) struct NodeRed;
 extern "Rust" {
 
     /// Returns the size of the node red message encoded as JSON
+    #[allow(dead_code)]
     pub fn node_red_msg_size() -> usize;
 
     /// Ask the host to write the message JSON in the buff
+    #[allow(dead_code)]
     pub fn node_red_msg(data: *const u8, offset: i32, length: i32) -> usize; // Implemented by the host
 
     /// Send a custom message using the node red host
+    #[allow(dead_code)]
     pub fn node_red_send(data: *const u8, offset: i32, length: i32);
 
     /// Send a custom message using the node red host
+    #[allow(dead_code)]
     pub fn node_red_warn(data: *const u8, offset: i32, length: i32);
 
     /// Error a custom message using the node red host
+    #[allow(dead_code)]
     pub fn node_red_error(data: *const u8, offset: i32, length: i32);
 
     /// Call the done function of the node red host
+    #[allow(dead_code)]
     pub fn node_red_done(data: *const u8, offset: i32, length: i32);
 
 
     /// Returns the size of the node red node struct encoded as JSON
-    pub fn node_red_node_size() -> usize;
+    #[allow(dead_code)]
+    pub fn node_red_node_length() -> usize;
 
     /// Ask the host to write the node JSON in the buff
+    #[allow(dead_code)]
     pub fn node_red_node(data: *const u8, offset: i32, length: i32) -> usize; // Implemented by the host
-
+    
+    #[allow(dead_code)]
     pub fn node_red_result(data: *const u8, offset: i32, length:i32);
 
-
+    #[allow(dead_code)]
     pub fn node_red_register(data: *const u8, offset: i32, length:i32);
-
+    
+    #[allow(dead_code)]
     pub fn node_emit(data: *const u8, offset: i32, length: i32);
 
     /// Returns the size of the node red message encoded as JSON
+    #[allow(dead_code)]
     pub fn node_red_pop_size() -> usize;
 
     /// Ask the host to write the message JSON in the buff
+    #[allow(dead_code)]
     pub fn node_red_pop(data: *const u8, offset: i32, length: i32) -> usize; // Implemented by the host
 
 
     /// Returns the size of the node context encoded as JSON
+    #[allow(dead_code)]
     pub fn node_red_context_size() -> usize;
 
     /// Ask the host to write the context in the buff
+    #[allow(dead_code)]
     pub fn node_red_context(data: *const u8, offset: i32, length: i32) -> usize; // Implemented by the host
 
 }
@@ -123,12 +137,6 @@ impl JSApiSet for NodeRed {
             })?,
         )?;
 
-        global.set_property("__node_pop_length", context.wrap_callback(|_, _this_arg, args|{
-                let length = unsafe{  node_red_pop_size() };
-                Ok(length.into())
-            })?,
-        )?;
-
 
         global.set_property(
             "__node_context",
@@ -151,8 +159,16 @@ impl JSApiSet for NodeRed {
             })?,
         )?;
 
-        global.set_property("__node_context_length", context.wrap_callback(|_, _this_arg, args|{
+        global.set_property("__node_context_length", 
+            context.wrap_callback(|_, _this_arg, args|{
                 let length = unsafe{  node_red_context_size() };
+                Ok(length.into())
+            })?,
+        )?;
+
+        global.set_property("__node_pop_length", 
+            context.wrap_callback(|_, _this_arg, args|{
+                let length = unsafe{  node_red_pop_size() };
                 Ok(length.into())
             })?,
         )?;
@@ -178,8 +194,9 @@ impl JSApiSet for NodeRed {
             })?,
         )?;
 
-        global.set_property("__node_node_length", context.wrap_callback(|_, _this_arg, args|{
-                let length = unsafe{  node_red_node_size() };
+        global.set_property("__node_node_length", 
+            context.wrap_callback(|_, _this_arg, args|{
+                let length = unsafe{  node_red_node_length() };
                 Ok(length.into())
             })?,
         )?;

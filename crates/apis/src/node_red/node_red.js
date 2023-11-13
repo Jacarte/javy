@@ -43,6 +43,7 @@
       return JSON.parse(final_decoder);
     },
     node() {
+      console.log("[WASM] calling __node_node_length");
       const buffer = new Uint8Array(__node_node_length());
       console.log("[WASM] buffer size", buffer.length);
       __node_node(buffer.buffer, buffer.byteOffset, buffer.byteLength);
@@ -106,16 +107,16 @@
   globalThis.done = globalThis.Node.IO.done;
   globalThis.warn = globalThis.Node.IO.warn;
 
-  Reflect.deleteProperty(globalThis, "__node_msg");
-  Reflect.deleteProperty(globalThis, "__node_send");
-  Reflect.deleteProperty(globalThis, "__node_done");
-  Reflect.deleteProperty(globalThis, "__node_msg_length");
-  Reflect.deleteProperty(globalThis, "__node_red_register");
-  Reflect.deleteProperty(globalThis, "__node_node_length");
-  Reflect.deleteProperty(globalThis, "__node_node");
-  Reflect.deleteProperty(globalThis, "__node_red_result");
-  Reflect.deleteProperty(globalThis, "__node_warn");
-  Reflect.deleteProperty(globalThis, "__node_context");
-  Reflect.deleteProperty(globalThis, "__node_context_length");
-  Reflect.deleteProperty(globalThis, "__node_emit");
+  //Reflect.deleteProperty(globalThis, "__node_msg");
+  //Reflect.deleteProperty(globalThis, "__node_send");
+  //Reflect.deleteProperty(globalThis, "__node_done");
+  // Reflect.deleteProperty(globalThis, "__node_msg_length");
+  //Reflect.deleteProperty(globalThis, "__node_red_register");
+  //Reflect.deleteProperty(globalThis, "__node_node_length");
+  //Reflect.deleteProperty(globalThis, "__node_node");
+  //Reflect.deleteProperty(globalThis, "__node_red_result");
+  //Reflect.deleteProperty(globalThis, "__node_warn");
+  //Reflect.deleteProperty(globalThis, "__node_context");
+  //Reflect.deleteProperty(globalThis, "__node_context_length");
+  //Reflect.deleteProperty(globalThis, "__node_emit");
 })();

@@ -90,7 +90,7 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
         )
     };
 
-    let (node_red_send_msg, node_red_done, node_red_warn, node_red_error, node_red_emit, node_red_pop, node_red_node, node_red_msg, node_red_register, node_red_result, fs ) = {
+    /*let (node_red_send_msg, node_red_done, node_red_warn, node_red_error, node_red_emit, node_red_pop, node_red_node, node_red_msg, node_red_register, node_red_result, fs ) = {
         let mut imports = HashMap::new();
         for import in module.imports.iter() {
             imports.insert(format!("{}:{}", import.module, import.name), import.id());
@@ -171,7 +171,7 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
         for imp in fs {
             module.imports.delete(imp)
         }
-    }
+    }*/
 
 
     let realloc_export = realloc.id();

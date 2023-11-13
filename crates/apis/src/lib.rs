@@ -76,8 +76,8 @@ mod process;
 #[cfg(feature = "fs")]
 pub mod fs;
 
-#[cfg(feature = "http")]
-pub mod http;
+//#[cfg(feature = "http")]
+//pub mod http;
 
 mod globals;
 
@@ -116,8 +116,8 @@ pub fn add_to_runtime(runtime: &Runtime, config: APIConfig) -> Result<()> {
     #[cfg(feature = "fs")]
     fs::FS.register(runtime, &config)?;
 
-    #[cfg(feature = "http")]
-    http::HTTP.register(runtime, &config)?;
+    //#[cfg(feature = "http")]
+    //http::HTTP.register(runtime, &config)?;
 
     globals::Globals.register(runtime, &config)?;
 

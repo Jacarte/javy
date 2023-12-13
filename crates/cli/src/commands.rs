@@ -46,40 +46,8 @@ pub struct CompileCommandOpts {
     /// Optional WIT world name for WIT file. Must be specified if WIT is file path is specified.
     pub wit_world: Option<String>,
 
-    #[structopt(long = "remove-node-red-send")]
-    pub remove_nred_send: bool,
-
-    #[structopt(long = "remove-node-red-done")]
-    pub remove_nred_done: bool,
-
-    #[structopt(long = "remove-node-red-warn")]
-    pub remove_nred_warn: bool,
-
-    #[structopt(long = "remove-node-red-error")]
-    pub remove_nred_error: bool,
-
-    #[structopt(long = "remove-node-red-emit")]
-    pub remove_nred_emit: bool,
-
-    #[structopt(long = "remove-node-red-pop")]
-    pub remove_nred_pop: bool,
-
-    #[structopt(long = "remove-node-red-node")]
-    pub remove_nred_node: bool,
-
-    #[structopt(long = "remove-node-red-msg")]
-    pub remove_nred_msg: bool,
-
-
-    #[structopt(long = "remove-node-red-register")]
-    pub remove_nred_register: bool,
-
-    #[structopt(long = "remove-node-red-result")]
-    pub remove_nred_result: bool,
-
-
-    #[structopt(long = "remove-fs")]
-    pub remove_fs: bool,
+    #[structopt(long = "remove-function")]
+    pub funcnames: Vec<String>,
 }
 
 #[derive(Debug, StructOpt)]

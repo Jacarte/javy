@@ -9,5 +9,14 @@
         }
     };
     globalThis.module = {};
+    globalThis.exports = {};
+
+    globalThis.require = function (name) {
+
+        if(name === "fs") {
+            return Node.FS;
+        }
+        return null;
+    }
   })();
   

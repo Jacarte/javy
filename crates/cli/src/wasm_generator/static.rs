@@ -73,7 +73,10 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
         })))?
         .wasm_bulk_memory(true)
         .run(wasm)
-        .map_err(|_| anyhow!("JS compilation failed"))?;
+        .map_err(|e|{
+            println!("Error: {:?}", e);
+            anyhow!("Wizer failed")
+        })?;
 
     let mut module = transform::module_config().parse(&wasm)?;
 
@@ -89,89 +92,6 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
             *exports.get("memory").unwrap(),
         )
     };
-
-    /*let (node_red_send_msg, node_red_done, node_red_warn, node_red_error, node_red_emit, node_red_pop, node_red_node, node_red_msg, node_red_register, node_red_result, fs ) = {
-        let mut imports = HashMap::new();
-        for import in module.imports.iter() {
-            imports.insert(format!("{}:{}", import.module, import.name), import.id());
-        }
-        (
-            vec![*imports.get("env:node_red_send").unwrap()],
-            vec![*imports.get("env:node_red_done").unwrap()],
-            vec![*imports.get("env:node_red_warn").unwrap()],
-            vec![*imports.get("env:node_red_error").unwrap()],
-            vec![*imports.get("env:node_emit").unwrap()],
-            vec![*imports.get("env:node_red_pop").unwrap()],
-            vec![*imports.get("env:node_red_node").unwrap(), *imports.get("env:node_red_node_size").unwrap()],
-            vec![*imports.get("env:node_red_msg").unwrap(), *imports.get("env:node_red_msg_size").unwrap()],
-            vec![*imports.get("env:node_red_register").unwrap()],
-            vec![*imports.get("env:node_red_result").unwrap()],
-
-            // Some WASI functions
-
-            vec![*imports.get("wasi_snapshot_preview1:fd_read").unwrap(), *imports.get("wasi_snapshot_preview1:fd_seek").unwrap(), *imports.get("wasi_snapshot_preview1:fd_write").unwrap()],
-        )
-    };
-
-    if opts.remove_nred_send {
-        for imp in node_red_send_msg {
-            module.imports.delete(imp)
-        }
-    }
-
-    if opts.remove_nred_done {
-        for imp in node_red_done {
-            module.imports.delete(imp)
-        }
-    }
-
-    if opts.remove_nred_warn {
-        for imp in node_red_warn {
-            module.imports.delete(imp)
-        }
-    }
-    if opts.remove_nred_error {
-        for imp in node_red_error {
-            module.imports.delete(imp)
-        }
-    }
-    if opts.remove_nred_emit {
-        for imp in node_red_emit {
-            module.imports.delete(imp)
-        }
-    }
-    if opts.remove_nred_pop {
-        for imp in node_red_pop {
-            module.imports.delete(imp)
-        }
-    }
-    if opts.remove_nred_node {
-        for imp in node_red_node {
-            module.imports.delete(imp)
-        }
-    }
-    if opts.remove_nred_msg {
-        for imp in node_red_msg {
-            module.imports.delete(imp)
-        }
-    }
-    if opts.remove_nred_register {
-        for imp in node_red_register {
-            module.imports.delete(imp)
-        }
-    }
-
-    if opts.remove_nred_result {
-        for imp in node_red_result {
-            module.imports.delete(imp)
-        }
-    }
-
-    if opts.remove_fs {
-        for imp in fs {
-            module.imports.delete(imp)
-        }
-    }*/
 
 
     let realloc_export = realloc.id();

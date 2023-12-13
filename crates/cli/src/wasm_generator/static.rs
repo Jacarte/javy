@@ -72,10 +72,14 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
             Ok(linker)
         })))?
         .wasm_bulk_memory(true)
+        //.wasm_simd(false)
+        //.wasm_multi_value(false)
+        //.wasm_multi_memory(false)
+        //.allow_wasi(true)?
         .run(wasm)
         .map_err(|e|{
             println!("Error: {:?}", e);
-            anyhow!("Wizer failed")
+            anyhow!("Wizer failed {:?}", e)
         })?;
 
     let mut module = transform::module_config().parse(&wasm)?;
@@ -137,10 +141,10 @@ pub fn generate(js: &JS, exports: Vec<Export>, fpermissions: &Option<PathBuf>, h
     let wasm = module.write();
 
     // This increases the size of the binary, which is not needed now
-    let mut module = transform::module_config().parse(&wasm)?;
-    // module.customs.add(SourceCodeSection::new(js)?);
-    // transform::add_producers_section(&mut module.producers);
-    Ok(module.emit_wasm())
+    //let mut module = transform::module_config().parse(&wasm)?;
+    //module.customs.add(SourceCodeSection::new(js)?);
+    //transform::add_producers_section(&mut module.producers);
+    Ok(wasm)
     //Ok(wasm)
 }
 

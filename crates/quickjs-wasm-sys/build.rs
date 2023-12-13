@@ -232,6 +232,9 @@ async fn main() -> Result<()> {
         .flag_if_supported("-Wno-enum-conversion")
         .flag_if_supported("-Wno-implicit-function-declaration")
         .flag_if_supported("-Wno-implicit-const-int-float-conversion")
+        // -Wbad-function-cast -Wcast-function-type
+        .flag_if_supported("-Wno-cast-function-type")
+        .flag_if_supported("-Wno-bad-function-cast")
         .target("wasm32-wasi")
         .opt_level(2)
         .compile("quickjs");

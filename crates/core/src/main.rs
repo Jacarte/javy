@@ -76,6 +76,7 @@ pub extern "C" fn init() {
 }
 
 fn main() {
+    println!("Hello, world! {:?}", unsafe { &RUNTIME[0] });
     //let bytecode = unsafe { BYTECODE };
     //let runtime = unsafe { RUNTIME };
     unsafe { execution::run_bytecode(&RUNTIME[0], &BYTECODE) };
@@ -91,7 +92,6 @@ fn main() {
 #[export_name = "javy.invoke"]
 pub unsafe extern "C" fn invoke(fn_name_ptr: *mut u8, fn_name_size: usize) {
     let _wasm_ctx = WasmCtx::new();
-
     let js_fn_name = str::from_utf8_unchecked(slice::from_raw_parts(fn_name_ptr, fn_name_size));
     execution::invoke_function(unsafe { &RUNTIME[0] }, FUNCTION_MODULE_NAME, js_fn_name);
 }

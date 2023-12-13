@@ -30,12 +30,12 @@ impl CustomSection for SourceCodeSection {
 
 pub fn module_config() -> ModuleConfig {
     let mut config = ModuleConfig::new();
-    config.generate_name_section(false);
+    config.generate_name_section(true);
     config
 }
 
 pub fn add_producers_section(producers: &mut ModuleProducers) {
-    producers.clear(); // removes Walrus and Rust
+    //producers.clear(); // removes Walrus and Rust
     producers.add_language("JavaScript", "ES2020");
     producers.add_processed_by("Javy", env!("CARGO_PKG_VERSION"));
 }
